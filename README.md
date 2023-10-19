@@ -9,7 +9,7 @@
 
 </p>
 
-Web GUI for syncing and downloadinng a YouTube Channel.
+Web GUI for synchronising and fetching content from a YouTube channel.
 
 
 ## Run using docker-compose
