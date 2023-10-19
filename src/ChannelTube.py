@@ -15,8 +15,8 @@ from plexapi.server import PlexServer
 
 class Data_Handler:
     def __init__(self):
-        self.config_folder = "\config"
-        self.download_folder = "\download"
+        self.config_folder = "config"
+        self.download_folder = "download"
         self.plex_address = "http://192.168.1.2:32400"
         self.plex_token = "abc123"
         self.plex_library_name = "You Tube"
