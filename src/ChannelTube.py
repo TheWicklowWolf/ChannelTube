@@ -182,7 +182,7 @@ class Data_Handler:
         link = video["link"]
         ydl_opts = {
             "ffmpeg_location": "/usr/bin/ffmpeg",
-            "format": "best[height>=1080]+bestaudio/best",
+            "format": "137+bestaudio/best",
             "outtmpl": channel_folder_path + "/%(title)s.%(ext)s",
             "quiet": False,
             "writethumbnail": True,
@@ -324,7 +324,7 @@ def updateSettings(data):
             raise Exception("No Time Entered, defaulting to 00:00")
         raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
         temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
-        cleaned_sync_start_times = list(set(temp_sync_start_times))
+        cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
         data_handler.sync_start_times = cleaned_sync_start_times
 
     except Exception as e:

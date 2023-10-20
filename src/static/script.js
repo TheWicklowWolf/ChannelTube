@@ -117,7 +117,7 @@ document.getElementById("add-channel").addEventListener("click", function () {
 config_modal.addEventListener('show.bs.modal', function (event) {
     socket.emit("loadSettings");
     function handleSettingsLoaded(settings) {
-        sync_start_times.value = settings.sync_start_times;
+        sync_start_times.value = settings.sync_start_times.join(', ');
         plex_address.value = settings.plex_address;
         plex_token.value = settings.plex_token;
         plex_library_name.value = settings.plex_library_name;
