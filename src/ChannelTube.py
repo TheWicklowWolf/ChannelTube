@@ -26,7 +26,7 @@ class Data_Handler:
         if not os.path.exists(self.download_folder):
             os.makedirs(self.download_folder)
 
-        self.sync_start_time = 2
+        self.sync_start_times = [0]
         self.settings_config_file = os.path.join(self.config_folder, "settings_config.json")
         self.req_channel_list = []
         self.channel_list_config_file = os.path.join(self.config_folder, "channel_list.json")
@@ -45,7 +45,7 @@ class Data_Handler:
         try:
             with open(self.settings_config_file, "r") as json_file:
                 ret = json.load(json_file)
-            self.sync_start_time = ret["sync_start_time"]
+            self.sync_start_times = ret["sync_start_times"]
             self.plex_address = ret["plex_address"]
             self.plex_token = ret["plex_token"]
             self.plex_library_name = ret["plex_library_name"]
@@ -57,7 +57,7 @@ class Data_Handler:
             with open(self.settings_config_file, "w") as json_file:
                 json.dump(
                     {
-                        "sync_start_time": self.sync_start_time,
+                        "sync_start_times": self.sync_start_times,
                         "plex_address": self.plex_address,
                         "plex_token": self.plex_token,
                         "plex_library_name": self.plex_library_name,
@@ -84,17 +84,16 @@ class Data_Handler:
 
     def schedule_checker(self):
         while True:
-            target_time_start = datetime.time(self.sync_start_time, 0, 0)
-            target_time_end = datetime.time(self.sync_start_time + 1, 0, 0)
             current_time = datetime.datetime.now().time()
-            if current_time > target_time_start and current_time < target_time_end:
+            within_sync_window = any(datetime.time(t, 0, 0) <= current_time <= datetime.time(t, 59, 59) for t in self.sync_start_times)
+
+            if within_sync_window:
                 logger.warning("Time to Start Sync")
                 self.master_queue()
                 logger.warning("Big sleep for 1 Hour - Sync Done")
                 time.sleep(3600)
             else:
-                logger.warning("Small sleep as not in sync time window - checking again in 60 seconds")
-                logger.warning(str(current_time) + " not between " + str(target_time_start) + " and " + str(target_time_end))
+                logger.warning("Small sleep as not in sync time window " + str(self.sync_start_times) + " - checking again in 60 seconds")
                 time.sleep(60)
 
     def get_list_of_videos(self, channel):
@@ -183,7 +182,7 @@ class Data_Handler:
         link = video["link"]
         ydl_opts = {
             "ffmpeg_location": "/usr/bin/ffmpeg",
-            "format": "best",
+            "format": "best[height>=1080]+bestaudio/best",
             "outtmpl": channel_folder_path + "/%(title)s.%(ext)s",
             "quiet": False,
             "writethumbnail": True,
@@ -294,7 +293,7 @@ def connection():
 @socketio.on("loadSettings")
 def loadSettings():
     data = {
-        "sync_start_time": data_handler.sync_start_time,
+        "sync_start_times": data_handler.sync_start_times,
         "plex_address": data_handler.plex_address,
         "plex_token": data_handler.plex_token,
         "plex_library_name": data_handler.plex_library_name,
@@ -317,10 +316,22 @@ def save_channel_settings(data):
 
 @socketio.on("updateSettings")
 def updateSettings(data):
-    data_handler.sync_start_time = int(data["sync_start_time"])
     data_handler.plex_address = data["plex_address"]
     data_handler.plex_token = data["plex_token"]
     data_handler.plex_library_name = data["plex_library_name"]
+    try:
+        if data["sync_start_times"] == "":
+            raise Exception("No Time Entered, defaulting to 00:00")
+        raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
+        temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
+        cleaned_sync_start_times = list(set(temp_sync_start_times))
+        data_handler.sync_start_times = cleaned_sync_start_times
+
+    except Exception as e:
+        logger.error(str(e))
+        data_handler.sync_start_times = [0]
+    finally:
+        logger.warning("Sync Times: " + str(data_handler.sync_start_times))
     data_handler.save_to_file()
 
 

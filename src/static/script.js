@@ -4,7 +4,7 @@ var save_message = document.getElementById("save-message");
 var save_changes_button = document.getElementById("save-changes-button");
 var save_channel_list = document.getElementById("save-channel-list");
 var save_channel_list_msg = document.getElementById("save-channel-list-msg");
-var sync_start_time = document.getElementById("sync_start_time");
+var sync_start_times = document.getElementById("sync_start_times");
 var plex_address = document.getElementById("plex_address");
 var plex_token = document.getElementById("plex_token");
 var plex_library_name = document.getElementById("plex_library_name");
@@ -68,16 +68,16 @@ function createEditModalsAndListeners() {
                         </div>
                             <form>
                                 <div class="form-group">
-                                    <label for="channelName">Channel Name</label>
+                                    <label for="channelName${index}">Channel Name:</label>
                                     <input type="text" class="form-control" id="channelName${index}" value="${channel.Name}">
                                 </div>
-                                <div class="form-group">
-                                    <label for="dlDays">Days to Sync</label>
-                                    <input type="number" class="form-control" id="dlDays${index}" value="${channel.DL_Days}">
+                                <div class="form-group my-4">
+                                    <label for="dlDays${index}">Days to Sync:</label>
+                                    <input type="number" class="form-control" min="0" id="dlDays${index}" value="${channel.DL_Days}">
                                 </div>
                                 <div class="form-group">
-                                    <label for="keepDays">Days to keep</label>
-                                    <input type="number" class="form-control" id="keepDays${index}" value="${channel.Keep_Days}">
+                                    <label for="keepDays${index}">Days to keep:</label>
+                                    <input type="number" class="form-control" min="0" id="keepDays${index}" value="${channel.Keep_Days}">
                                 </div>
                             </form>
                         </div>
@@ -117,7 +117,7 @@ document.getElementById("add-channel").addEventListener("click", function () {
 config_modal.addEventListener('show.bs.modal', function (event) {
     socket.emit("loadSettings");
     function handleSettingsLoaded(settings) {
-        sync_start_time.value = settings.sync_start_time;
+        sync_start_times.value = settings.sync_start_times;
         plex_address.value = settings.plex_address;
         plex_token.value = settings.plex_token;
         plex_library_name.value = settings.plex_library_name;
@@ -128,7 +128,7 @@ config_modal.addEventListener('show.bs.modal', function (event) {
 
 save_changes_button.addEventListener("click", () => {
     socket.emit("updateSettings", {
-        "sync_start_time": sync_start_time.value,
+        "sync_start_times": sync_start_times.value,
         "plex_address": plex_address.value,
         "plex_token": plex_token.value,
         "plex_library_name": plex_library_name.value,
