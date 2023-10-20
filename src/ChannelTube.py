@@ -28,6 +28,7 @@ class Data_Handler:
 
         self.sync_start_times = [0]
         self.settings_config_file = os.path.join(self.config_folder, "settings_config.json")
+
         self.req_channel_list = []
         self.channel_list_config_file = os.path.join(self.config_folder, "channel_list.json")
 
@@ -49,6 +50,7 @@ class Data_Handler:
             self.plex_address = ret["plex_address"]
             self.plex_token = ret["plex_token"]
             self.plex_library_name = ret["plex_library_name"]
+
         except Exception as e:
             logger.error("Error Loading Config: " + str(e))
 
@@ -65,6 +67,7 @@ class Data_Handler:
                     json_file,
                     indent=4,
                 )
+
         except Exception as e:
             logger.error("Error Saving Config: " + str(e))
 
@@ -72,6 +75,7 @@ class Data_Handler:
         try:
             with open(self.channel_list_config_file, "r") as json_file:
                 self.req_channel_list = json.load(json_file)
+
         except Exception as e:
             logger.error("Error Loading Channels: " + str(e))
 
@@ -79,6 +83,7 @@ class Data_Handler:
         try:
             with open(self.channel_list_config_file, "w") as json_file:
                 json.dump(self.req_channel_list, json_file, indent=4)
+
         except Exception as e:
             logger.error("Error Saving Channels: " + str(e))
 
@@ -99,30 +104,36 @@ class Data_Handler:
     def get_list_of_videos(self, channel):
         channel_name = channel["Name"]
         days_to_retrieve = channel["DL_Days"]
+
         channelsSearch = youtube.ChannelsSearch(channel_name)
         ret = channelsSearch.result()
+
         channel_id = ret["result"][0]["id"]
         channel_title = ret["result"][0]["title"]
+        logger.warning("Channel Title: " + channel_title)
+
         channel_playlist_url = youtube.playlist_from_channel_id(channel_id)
         playlist = youtube.Playlist(channel_playlist_url)
 
         today = datetime.datetime.now()
         last_date = today - datetime.timedelta(days=days_to_retrieve)
+
         video_list = []
         ok_to_continue_search = True
-        first_check_done = False
 
-        while (playlist.hasMoreVideos and ok_to_continue_search) or not first_check_done:
-            first_check_done = True
+        while ok_to_continue_search:
             for video in playlist.videos:
                 video_title = video["title"]
                 video_link_in_playlist = video["link"]
                 logger.warning(video_title + " : " + video_link_in_playlist)
+
                 duration = self.get_seconds_from_duration(video["duration"])
                 actual_video = youtube.Video.get(video_link_in_playlist, mode=youtube.ResultMode.json, get_upload_date=True)
+
                 video_actual_link = actual_video["link"]
                 video_date_raw = actual_video["uploadDate"]
                 video_date = datetime.datetime.fromisoformat(video_date_raw).replace(tzinfo=None)
+
                 if video_date >= last_date:
                     if duration > 60:
                         video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
@@ -133,9 +144,12 @@ class Data_Handler:
                     ok_to_continue_search = False
                     logger.warning("No more Videos in date range")
                     break
-            if playlist.hasMoreVideos:
-                logger.warning("Getting more Videos")
-                playlist.getNextVideos()
+            else:
+                if playlist.hasMoreVideos:
+                    logger.warning("Getting more Videos")
+                    playlist.getNextVideos()
+                else:
+                    ok_to_continue_search = False
 
         return video_list
 
@@ -143,8 +157,10 @@ class Data_Handler:
         try:
             channel_folder = channel["Name"]
             channel_folder_path = os.path.join(self.download_folder, channel_folder)
+
             if not os.path.exists(channel_folder_path):
                 os.makedirs(channel_folder_path)
+
             raw_directory_list = os.listdir(channel_folder_path)
             directory_list = self.string_cleaner(raw_directory_list)
 
@@ -160,21 +176,27 @@ class Data_Handler:
     def cleanup_old_files(self, channel):
         channel_folder = channel["Name"]
         days_to_keep = channel["Keep_Days"]
+
         channel_folder_path = os.path.join(self.download_folder, channel_folder)
         raw_directory_list = os.listdir(channel_folder_path)
+
         current_datetime = datetime.datetime.now()
+
         try:
             channel["Video_Count"] = 0
             for filename in raw_directory_list:
                 file_path = os.path.join(channel_folder_path, filename)
+
                 if os.path.isfile(file_path):
                     channel["Video_Count"] += 1
                     file_ctime = datetime.datetime.fromtimestamp(os.path.getctime(file_path))
                     age = current_datetime - file_ctime
+
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
                         logger.warning(f"Deleted: {filename}")
                         channel["Video_Count"] -= 1
+
         except Exception as e:
             logger.error(str(e))
 
@@ -199,6 +221,7 @@ class Data_Handler:
             logger.warning("yt_dl Setup for : " + link)
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
             logger.warning("yt_dl Start : " + link)
+
             yt_downloader.download([link])
             logger.warning("yt_dl Complete : " + link)
 
@@ -208,6 +231,7 @@ class Data_Handler:
     def progress_callback(self, d):
         if d["status"] == "finished":
             logger.warning("Download complete")
+
         elif d["status"] == "downloading":
             logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
 
@@ -217,17 +241,22 @@ class Data_Handler:
             for channel in self.req_channel_list:
                 logging.warning("Looking for channel Videos on YouTube: " + channel["Name"])
                 vid_list = self.get_list_of_videos(channel)
+
                 logging.warning("Starting Downloading List: " + channel["Name"])
                 self.check_and_download(vid_list, channel)
                 logging.warning("Finished Downloading List: " + channel["Name"])
+
                 logging.warning("Start Clearing Files: " + channel["Name"])
                 self.cleanup_old_files(channel)
                 logging.warning("Finished Clearing Files: " + channel["Name"])
+
                 channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
 
             self.save_channel_list_to_file()
             data = {"Channel_List": self.req_channel_list}
             socketio.emit("Update", data)
+
+            logger.warning("Attempting Plex Sync")
             plex_server = PlexServer(self.plex_address, self.plex_token)
             library_section = plex_server.library.section(self.plex_library_name)
             library_section.update()
@@ -235,6 +264,8 @@ class Data_Handler:
 
         except Exception as e:
             logger.error(str(e))
+            logger.warning("Sync Finished")
+
         else:
             logger.warning("Successfully Completed")
 
@@ -247,6 +278,7 @@ class Data_Handler:
             temp_string = re.sub(r"\s+", " ", raw_string)
             cleaned_string = temp_string.strip()
             return cleaned_string
+
         elif isinstance(input_string, list):
             cleaned_strings = []
             for string in input_string:
@@ -259,6 +291,7 @@ class Data_Handler:
 
     def get_seconds_from_duration(self, duration):
         parts = duration.split(":")
+
         if len(parts) == 2:
             hours, minutes = 0, int(parts[0])
             seconds = int(parts[1])
@@ -272,6 +305,7 @@ class Data_Handler:
 app = Flask(__name__)
 app.secret_key = "secret_key"
 socketio = SocketIO(app)
+
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %H:%M:%S", handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger()
 
