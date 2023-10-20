@@ -187,7 +187,7 @@ class Data_Handler:
             "quiet": False,
             "writethumbnail": True,
             "progress_hooks": [self.progress_callback],
-            "merge_output_format": "mkv",
+            "merge_output_format": "mp4",
             "postprocessors": [
                 {
                     "key": "EmbedThumbnail",
@@ -213,11 +213,10 @@ class Data_Handler:
 
     def master_queue(self):
         try:
-            logger.warning("Sync Task started at: " + datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S"))
+            logger.warning("Sync Task started...")
             for channel in self.req_channel_list:
                 logging.warning("Looking for channel Videos on YouTube: " + channel["Name"])
                 vid_list = self.get_list_of_videos(channel)
-                logging.warning("Got Video List: " + channel["Name"])
                 logging.warning("Starting Downloading List: " + channel["Name"])
                 self.check_and_download(vid_list, channel)
                 logging.warning("Finished Downloading List: " + channel["Name"])
