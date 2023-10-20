@@ -23,6 +23,7 @@ services:
     volumes:
       - /config/channeltube:/channeltube/config
       - /data/media/channeltube:/channeltube/download
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - 5000:5000
     restart: unless-stopped
