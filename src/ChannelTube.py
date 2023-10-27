@@ -18,8 +18,9 @@ class Data_Handler:
         self.config_folder = "config"
         self.download_folder = "download"
         self.plex_address = "http://192.168.1.2:32400"
-        self.plex_token = "abc123"
-        self.plex_library_name = "You Tube"
+        self.plex_token = ""
+        self.plex_library_name = "YouTube"
+        self.plex_scan_req_flag = False
 
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
@@ -201,6 +202,8 @@ class Data_Handler:
             logger.error(str(e))
 
     def download_video(self, video, channel_folder_path):
+        if self.plex_scan_req_flag == False:
+            self.plex_scan_req_flag = True
         link = video["link"]
         ydl_opts = {
             "ffmpeg_location": "/usr/bin/ffmpeg",
@@ -237,6 +240,7 @@ class Data_Handler:
 
     def master_queue(self):
         try:
+            self.plex_scan_req_flag = False
             logger.warning("Sync Task started...")
             for channel in self.req_channel_list:
                 logging.warning("Looking for channel Videos on YouTube: " + channel["Name"])
@@ -256,11 +260,14 @@ class Data_Handler:
             data = {"Channel_List": self.req_channel_list}
             socketio.emit("Update", data)
 
-            logger.warning("Attempting Plex Sync")
-            plex_server = PlexServer(self.plex_address, self.plex_token)
-            library_section = plex_server.library.section(self.plex_library_name)
-            library_section.update()
-            logger.warning(f"Library scan for '{self.plex_library_name}' started.")
+            if self.plex_scan_req_flag == True and self.plex_token:
+                logger.warning("Attempting Plex Sync")
+                plex_server = PlexServer(self.plex_address, self.plex_token)
+                library_section = plex_server.library.section(self.plex_library_name)
+                library_section.update()
+                logger.warning(f"Library scan for '{self.plex_library_name}' started.")
+            else:
+                logger.warning("Plex Sync not required")
 
         except Exception as e:
             logger.error(str(e))
