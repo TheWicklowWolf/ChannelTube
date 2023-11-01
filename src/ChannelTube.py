@@ -204,24 +204,25 @@ class Data_Handler:
     def download_video(self, video, channel_folder_path):
         if self.plex_scan_req_flag == False:
             self.plex_scan_req_flag = True
-        link = video["link"]
-        ydl_opts = {
-            "ffmpeg_location": "/usr/bin/ffmpeg",
-            "format": "137+bestaudio/best",
-            "outtmpl": channel_folder_path + "/%(title)s.%(ext)s",
-            "quiet": False,
-            "writethumbnail": True,
-            "progress_hooks": [self.progress_callback],
-            "merge_output_format": "mp4",
-            "postprocessors": [
-                {
-                    "key": "EmbedThumbnail",
-                }
-            ],
-        }
-
         try:
-            logger.warning("yt_dl Setup for : " + link)
+            link = video["link"]
+            title = self.string_cleaner(video["title"])
+            full_file_path = os.path.join(channel_folder_path, title)
+            ydl_opts = {
+                "ffmpeg_location": "/usr/bin/ffmpeg",
+                "format": "137+bestaudio/best",
+                "outtmpl": full_file_path,
+                "quiet": False,
+                "writethumbnail": True,
+                "progress_hooks": [self.progress_callback],
+                "merge_output_format": "mp4",
+                "postprocessors": [
+                    {
+                        "key": "EmbedThumbnail",
+                    }
+                ],
+            }
+
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
             logger.warning("yt_dl Start : " + link)
 
@@ -281,7 +282,7 @@ class Data_Handler:
 
     def string_cleaner(self, input_string):
         if isinstance(input_string, str):
-            raw_string = re.sub(r"[^\w\s-]", " ", input_string)
+            raw_string = re.sub(r'[\/:*?"<>|]', " ", input_string)
             temp_string = re.sub(r"\s+", " ", raw_string)
             cleaned_string = temp_string.strip()
             return cleaned_string
@@ -289,9 +290,9 @@ class Data_Handler:
         elif isinstance(input_string, list):
             cleaned_strings = []
             for string in input_string:
-                raw_string = re.sub(r"[^\w\s-]", " ", string)
+                file_name_without_extension, file_extension = os.path.splitext(string)
+                raw_string = re.sub(r'[\/:*?"<>|]', " ", file_name_without_extension)
                 temp_string = re.sub(r"\s+", " ", raw_string)
-                temp_string = temp_string[:-3]
                 cleaned_string = temp_string.strip()
                 cleaned_strings.append(cleaned_string)
             return cleaned_strings
