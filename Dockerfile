@@ -13,7 +13,7 @@ RUN mkdir -p /channeltube/downloads
 RUN chown -R $UID:$GID /channeltube
 RUN chmod -R 777 /channeltube/downloads
 # Install requirements and run code as general_user
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000
 USER general_user
 CMD ["gunicorn","src.ChannelTube:app", "-c", "gunicorn_config.py"]
