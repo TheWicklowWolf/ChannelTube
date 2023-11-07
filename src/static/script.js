@@ -19,7 +19,7 @@ function renderChannels() {
         row.innerHTML = `
                 <td>${channel.Name}</td>
                 <td>${channel.Last_Synced}</td>
-                <td>${channel.Video_Count}</td>
+                <td class="text-center">${channel.Video_Count}</td>
                 <td>
                     <button class="btn btn-sm btn-primary custom-button-width" data-bs-toggle="modal" data-bs-target="#editModal${index}">Edit</button>
                 </td>

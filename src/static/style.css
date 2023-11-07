@@ -40,6 +40,9 @@ body {
 }
 
 @media screen and (max-width: 600px) {
+    .container{
+        max-height: 75vh;
+    }
     h1{
         margin-bottom: 0.1rem!important;
     }
