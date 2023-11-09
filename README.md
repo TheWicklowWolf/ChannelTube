@@ -31,14 +31,14 @@ services:
 
 ---
 
-<p align="center">
-
 
 ![image](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/b9ba0532-f4cf-4ed2-b5ac-8970c9d54848)
 
 
+---
 
-</p>
+
+![ChannelTubeDark](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/1e09a757-55cd-42bd-b3cb-aadd7152bd2e)
 
 
 https://hub.docker.com/r/thewicklowwolf/channeltube
