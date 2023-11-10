@@ -5,9 +5,9 @@ var save_changes_button = document.getElementById("save-changes-button");
 var save_channel_list = document.getElementById("save-channel-list");
 var save_channel_list_msg = document.getElementById("save-channel-list-msg");
 var sync_start_times = document.getElementById("sync_start_times");
-var plex_address = document.getElementById("plex_address");
-var plex_token = document.getElementById("plex_token");
-var plex_library_name = document.getElementById("plex_library_name");
+var media_server_addresses = document.getElementById("media_server_addresses");
+var media_server_tokens = document.getElementById("media_server_tokens");
+var media_server_library_name = document.getElementById("media_server_library_name");
 var channels = [];
 var socket = io();
 
@@ -118,9 +118,9 @@ config_modal.addEventListener('show.bs.modal', function (event) {
     socket.emit("loadSettings");
     function handleSettingsLoaded(settings) {
         sync_start_times.value = settings.sync_start_times.join(', ');
-        plex_address.value = settings.plex_address;
-        plex_token.value = settings.plex_token;
-        plex_library_name.value = settings.plex_library_name;
+        media_server_addresses.value = settings.media_server_addresses;
+        media_server_tokens.value = settings.media_server_tokens;
+        media_server_library_name.value = settings.media_server_library_name;
         socket.off("settingsLoaded", handleSettingsLoaded);
     }
     socket.on("settingsLoaded", handleSettingsLoaded);
@@ -129,9 +129,9 @@ config_modal.addEventListener('show.bs.modal', function (event) {
 save_changes_button.addEventListener("click", () => {
     socket.emit("updateSettings", {
         "sync_start_times": sync_start_times.value,
-        "plex_address": plex_address.value,
-        "plex_token": plex_token.value,
-        "plex_library_name": plex_library_name.value,
+        "media_server_addresses": media_server_addresses.value,
+        "media_server_tokens": media_server_tokens.value,
+        "media_server_library_name": media_server_library_name.value,
     });
     save_message.style.display = "block";
     setTimeout(function () {
