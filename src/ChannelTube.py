@@ -198,7 +198,7 @@ class Data_Handler:
                         logger.warning(f"Deleted: {filename}")
                     else:
                         channel["Video_Count"] += 1
-                        logger.warning(f"File: {filename} is {age} days old, not over {days_to_keep} days")
+                        logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days")
 
         except Exception as e:
             logger.error(str(e))
@@ -292,7 +292,7 @@ class Data_Handler:
                 logger.warning(f"Plex Library scan for '{self.media_server_library_name}' started.")
             except Exception as e:
                 logger.warning(f"Plex Library scan failed: " + str(e))
-        if "Jellyfin" in media_tokens and "Jellyfin" in media_tokens:
+        if "Jellyfin" in media_servers and "Jellyfin" in media_tokens:
             try:
                 token = media_tokens.get("Jellyfin")
                 address = media_servers.get("Jellyfin")
@@ -354,7 +354,7 @@ app = Flask(__name__)
 app.secret_key = "secret_key"
 socketio = SocketIO(app)
 
-logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(message)s", datefmt="%d/%m/%Y %H:%M:%S", handlers=[logging.StreamHandler(sys.stdout)])
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logger = logging.getLogger()
 
 data_handler = Data_Handler()
