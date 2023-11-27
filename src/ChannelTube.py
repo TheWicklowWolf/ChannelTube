@@ -196,6 +196,8 @@ class Data_Handler:
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
                         logger.warning(f"Deleted: {filename}")
+                        if self.media_server_scan_req_flag == False:
+                            self.media_server_scan_req_flag = True
                     else:
                         channel["Video_Count"] += 1
                         logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days")
