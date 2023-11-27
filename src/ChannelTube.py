@@ -190,14 +190,15 @@ class Data_Handler:
                 file_path = os.path.join(channel_folder_path, filename)
 
                 if os.path.isfile(file_path):
-                    channel["Video_Count"] += 1
-                    file_ctime = datetime.datetime.fromtimestamp(os.path.getctime(file_path))
-                    age = current_datetime - file_ctime
+                    file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                    age = current_datetime - file_mtime
 
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
                         logger.warning(f"Deleted: {filename}")
-                        channel["Video_Count"] -= 1
+                    else:
+                        channel["Video_Count"] += 1
+                        logger.warning(f"File: {filename} is {age} days old, not over {days_to_keep} days")
 
         except Exception as e:
             logger.error(str(e))
