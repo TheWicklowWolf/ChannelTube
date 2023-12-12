@@ -193,8 +193,12 @@ class Data_Handler:
                 if os.path.isfile(file_path):
                     try:
                         mp4_file = MP4(file_path)
-                        file_mtime = datetime.datetime.strptime(mp4_file.get("\xa9day", [None])[0], "%Y-%m-%d %H:%M:%S")
-                        logger.warning(f"Extracted datetime from metadata: {file_mtime}")
+                        mp4_created_timestamp = mp4_file.get("\xa9day", [None])[0]
+                        if mp4_created_timestamp:
+                            file_mtime = datetime.datetime.strptime(mp4_created_timestamp, "%Y-%m-%d %H:%M:%S")
+                            logger.warning(f"Extracted datetime from metadata: {file_mtime}")
+                        else:
+                            raise Exception("No timestamp found")
 
                     except Exception as e:
                         logger.error(f"Error extracting datetime from metadata: {e}")
