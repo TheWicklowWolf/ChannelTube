@@ -12,6 +12,7 @@ import yt_dlp
 import json
 from plexapi.server import PlexServer
 import requests
+from mutagen.mp4 import MP4
 
 
 class Data_Handler:
@@ -190,12 +191,21 @@ class Data_Handler:
                 file_path = os.path.join(channel_folder_path, filename)
 
                 if os.path.isfile(file_path):
-                    file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                    try:
+                        mp4_file = MP4(file_path)
+                        file_mtime = datetime.datetime.strptime(mp4_file.get("\xa9day", [None])[0], "%Y-%m-%d %H:%M:%S")
+                        logger.warning(f"Extracted datetime from metadata: {file_mtime}")
+
+                    except Exception as e:
+                        logger.error(f"Error extracting datetime from metadata: {e}")
+                        file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                        logger.error(f"Using Modified timestamp instead.... {file_mtime}")
+
                     age = current_datetime - file_mtime
 
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
-                        logger.warning(f"Deleted: {filename}")
+                        logger.warning(f"Deleted: {filename} as it is {age.days} days old")
                         if self.media_server_scan_req_flag == False:
                             self.media_server_scan_req_flag = True
                     else:
@@ -233,6 +243,8 @@ class Data_Handler:
             yt_downloader.download([link])
             logger.warning("yt_dl Complete : " + link)
 
+            self.add_datetime_to_metadata(full_file_path + ".mp4")
+
         except Exception as e:
             logger.error(f"Error downloading video: {link}. Error message: {e}")
 
@@ -242,6 +254,17 @@ class Data_Handler:
 
         elif d["status"] == "downloading":
             logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
+
+    def add_datetime_to_metadata(self, file_path):
+        try:
+            current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            mp4_file = MP4(file_path)
+            mp4_file["\xa9day"] = current_datetime
+            mp4_file.save()
+            logger.warning(f"Added datetime {current_datetime} to metadata to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Error adding datetime {current_datetime} to {file_path} metadata: {e}")
 
     def master_queue(self):
         try:
