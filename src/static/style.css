@@ -43,6 +43,15 @@ body {
     .container{
         max-height: 75vh;
     }
+    .custom-button-width{
+        width: 55px !important;
+    }
+    .table{
+        text-align: center; 
+    }    
+    th, td {
+      vertical-align: middle; 
+    }   
     h1{
         margin-bottom: 0.1rem!important;
     }
