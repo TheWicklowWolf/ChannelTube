@@ -237,7 +237,9 @@ class Data_Handler:
                 "postprocessors": [
                     {
                         "key": "EmbedThumbnail",
-                    }
+                    },
+                    {"key": "SponsorBlock", "categories": ["sponsor"]},
+                    {"key": "ModifyChapters", "remove_sponsor_segments": ["sponsor"]},
                 ],
             }
 
