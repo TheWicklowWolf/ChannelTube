@@ -72,6 +72,10 @@ function createEditModalsAndListeners() {
                                     <input type="text" class="form-control" id="channelName${index}" value="${channel.Name}">
                                 </div>
                                 <div class="form-group my-4">
+                                    <label for="channelLink${index}">Channel Link:</label>
+                                    <input type="text" class="form-control" id="channelLink${index}" value="${channel.Link}">
+                                </div>
+                                <div class="form-group my-4">
                                     <label for="dlDays${index}">Days to Sync:</label>
                                     <input type="number" class="form-control" min="0" id="dlDays${index}" value="${channel.DL_Days}">
                                 </div>
@@ -95,6 +99,7 @@ function createEditModalsAndListeners() {
 
 function saveChannelSettings(index) {
     channels[index].Name = document.getElementById(`channelName${index}`).value;
+    channels[index].Link = document.getElementById(`channelLink${index}`).value;
     channels[index].DL_Days = parseInt(document.getElementById(`dlDays${index}`).value, 10);
     channels[index].Keep_Days = parseInt(document.getElementById(`keepDays${index}`).value, 10);
     socket.emit("save_channel_settings", { "channel": channels[index] });
@@ -109,7 +114,7 @@ function saveChannelSettings(index) {
 socket.on("Update", updated_info);
 
 document.getElementById("add-channel").addEventListener("click", function () {
-    channels.push({ Name: "New Channel", "Keep_Days": 28, "DL_Days": 14, Last_Synced: "Never", Video_Count: 0 });
+    channels.push({ Name: "New Channel", Link: "Channel URL", "Keep_Days": 28, "DL_Days": 14, Last_Synced: "Never", Video_Count: 0 });
     renderChannels();
     createEditModalsAndListeners();
 });
