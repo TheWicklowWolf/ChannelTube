@@ -104,7 +104,7 @@ class Data_Handler:
 
     def get_list_of_videos(self, channel):
         channel_name = channel["Name"]
-        channel_link = channel["Link"]
+
         days_to_retrieve = channel["DL_Days"]
         ydl_opts = {
             "quiet": True,
@@ -113,9 +113,23 @@ class Data_Handler:
         }
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
-        channel_info = ydl.extract_info(channel_link, download=False)
-        channel_id = channel_info["channel_id"]
-        channel_title = channel_info["title"]
+        try:
+            channel_link = channel["Link"]
+            channel_info = ydl.extract_info(channel_link, download=False)
+            channel_id = channel_info["channel_id"]
+            channel_title = channel_info["title"]
+
+            if not channel_id:
+                raise Exception("No Channel ID")
+            if not channel_title:
+                raise Exception("No Channel Title")
+
+        except Exception as e:
+            logger.error(f"Error using Channel Link: {str(e)}")
+            logger.error("Trying to search for the Channel manually...")
+            ret = ydl.extract_info(f"ytsearch:{channel_name} channel", download=False)
+            channel_id = ret["entries"][0]["channel_id"]
+            channel_title = ret["entries"][0]["uploader"]
 
         logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
         uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
