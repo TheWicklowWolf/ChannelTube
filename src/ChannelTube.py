@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import time
 import datetime
 import threading
@@ -126,27 +125,32 @@ class Data_Handler:
 
         while ok_to_continue_search:
             for video in playlist.videos:
-                video_title = video["title"]
-                video_link_in_playlist = video["link"]
-                logger.warning(video_title + " : " + video_link_in_playlist)
+                try:
+                    video_title = video["title"]
+                    video_link_in_playlist = video["link"]
+                    logger.warning(video_title + " : " + video_link_in_playlist)
 
-                duration = self.get_seconds_from_duration(video["duration"])
-                actual_video = youtube.Video.get(video_link_in_playlist, mode=youtube.ResultMode.json, get_upload_date=True)
+                    duration = self.get_seconds_from_duration(video["duration"])
+                    actual_video = youtube.Video.get(video_link_in_playlist, mode=youtube.ResultMode.json, get_upload_date=True)
 
-                video_actual_link = actual_video["link"]
-                video_date_raw = actual_video["uploadDate"]
-                video_date = datetime.datetime.fromisoformat(video_date_raw).replace(tzinfo=None)
+                    video_actual_link = actual_video["link"]
+                    video_date_raw = actual_video["publishDate"]
+                    video_date = datetime.datetime.fromisoformat(video_date_raw).replace(tzinfo=None)
 
-                if video_date >= last_date:
-                    if duration > 60:
-                        video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
-                        logger.warning("Added Video to List: " + video_title)
+                    if video_date >= last_date:
+                        if duration > 60:
+                            video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
+                            logger.warning("Added Video to List: " + video_title)
+                        else:
+                            logger.warning("Ignoring Short Video: " + video_title + " " + video_actual_link)
                     else:
-                        logger.warning("Ignoring Short Video: " + video_title + " " + video_actual_link)
-                else:
-                    ok_to_continue_search = False
-                    logger.warning("No more Videos in date range")
-                    break
+                        ok_to_continue_search = False
+                        logger.warning("No more Videos in date range")
+                        break
+
+                except Exception as e:
+                    logger.error(f"Error extracting details of {video_title}: {str(e)}")
+
             else:
                 if playlist.hasMoreVideos:
                     logger.warning("Getting more Videos")
