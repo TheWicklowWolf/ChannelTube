@@ -112,7 +112,7 @@ class Data_Handler:
         }
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
-        ret = ydl.extract_info(f"ytsearch:{channel_name}", download=False)
+        ret = ydl.extract_info(f"ytsearch:{channel_name} channel", download=False)
         channel_id = ret["entries"][0]["channel_id"]
         channel_title = ret["entries"][0]["uploader"]
 
