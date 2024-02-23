@@ -3,6 +3,6 @@ gevent
 gevent-websocket
 flask
 flask_socketio
-youtube-search-python
 yt_dlp
 plexapi
+requests

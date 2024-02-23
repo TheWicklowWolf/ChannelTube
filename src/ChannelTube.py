@@ -6,7 +6,6 @@ import threading
 import re
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-import youtubesearchpython as youtube
 import yt_dlp
 import json
 from plexapi.server import PlexServer
@@ -106,57 +105,50 @@ class Data_Handler:
     def get_list_of_videos(self, channel):
         channel_name = channel["Name"]
         days_to_retrieve = channel["DL_Days"]
+        ydl_opts = {
+            "quiet": True,
+            "extract_flat": True,
+            "force_generic_extractor": True,
+        }
+        ydl = yt_dlp.YoutubeDL(ydl_opts)
 
-        channelsSearch = youtube.ChannelsSearch(channel_name)
-        ret = channelsSearch.result()
+        ret = ydl.extract_info(f"ytsearch:{channel_name}", download=False)
+        channel_id = ret["entries"][0]["channel_id"]
+        channel_title = ret["entries"][0]["uploader"]
 
-        channel_id = ret["result"][0]["id"]
-        channel_title = ret["result"][0]["title"]
-        logger.warning("Channel Title: " + channel_title)
-
-        channel_playlist_url = youtube.playlist_from_channel_id(channel_id)
-        playlist = youtube.Playlist(channel_playlist_url)
+        logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
+        uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
+        playlist = ydl.extract_info(uploads_playlist_url, download=False)
 
         today = datetime.datetime.now()
         last_date = today - datetime.timedelta(days=days_to_retrieve)
 
         video_list = []
-        ok_to_continue_search = True
+        for video in playlist["entries"]:
+            try:
+                video_title = video["title"]
+                video_link_in_playlist = video["url"]
+                logger.warning(video_title + " : " + video_link_in_playlist)
 
-        while ok_to_continue_search:
-            for video in playlist.videos:
-                try:
-                    video_title = video["title"]
-                    video_link_in_playlist = video["link"]
-                    logger.warning(video_title + " : " + video_link_in_playlist)
+                duration = video["duration"]
+                actual_video = ydl.extract_info(video_link_in_playlist, download=False)
 
-                    duration = self.get_seconds_from_duration(video["duration"])
-                    actual_video = youtube.Video.get(video_link_in_playlist, mode=youtube.ResultMode.json, get_upload_date=True)
+                video_actual_link = actual_video["webpage_url"]
+                video_date_raw = actual_video["upload_date"]
+                video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
 
-                    video_actual_link = actual_video["link"]
-                    video_date_raw = actual_video["publishDate"]
-                    video_date = datetime.datetime.fromisoformat(video_date_raw).replace(tzinfo=None)
-
-                    if video_date >= last_date:
-                        if duration > 60:
-                            video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
-                            logger.warning("Added Video to List: " + video_title)
-                        else:
-                            logger.warning("Ignoring Short Video: " + video_title + " " + video_actual_link)
+                if video_date >= last_date:
+                    if duration > 60:
+                        video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
+                        logger.warning("Added Video to List: " + video_title)
                     else:
-                        ok_to_continue_search = False
-                        logger.warning("No more Videos in date range")
-                        break
-
-                except Exception as e:
-                    logger.error(f"Error extracting details of {video_title}: {str(e)}")
-
-            else:
-                if playlist.hasMoreVideos:
-                    logger.warning("Getting more Videos")
-                    playlist.getNextVideos()
+                        logger.warning("Ignoring Short Video: " + video_title + " " + video_actual_link)
                 else:
-                    ok_to_continue_search = False
+                    logger.warning("No more Videos in date range")
+                    break
+
+            except Exception as e:
+                logger.error(f"Error extracting details of {video_title}: {str(e)}")
 
         return video_list
 
@@ -357,18 +349,6 @@ class Data_Handler:
                 cleaned_string = temp_string.strip()
                 cleaned_strings.append(cleaned_string)
             return cleaned_strings
-
-    def get_seconds_from_duration(self, duration):
-        parts = duration.split(":")
-
-        if len(parts) == 2:
-            hours, minutes = 0, int(parts[0])
-            seconds = int(parts[1])
-
-        elif len(parts) == 3:
-            hours, minutes, seconds = map(int, parts)
-        total_seconds = hours * 3600 + minutes * 60 + seconds
-        return total_seconds
 
     def convert_string_to_dict(self, raw_string):
         result = {}
