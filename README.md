@@ -1,13 +1,9 @@
 ![Build Status](https://github.com/TheWicklowWolf/ChannelTube/actions/workflows/main.yml/badge.svg)
 ![Docker Pulls](https://img.shields.io/docker/pulls/thewicklowwolf/channeltube.svg)
 
-<p align="center">
 
 ![full_logo](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/c07c2794-d537-407e-9f5b-83098244f6c7)
 
-
-
-</p>
 
 Web GUI for synchronising and fetching content from a YouTube channel.
 
