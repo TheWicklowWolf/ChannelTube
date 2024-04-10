@@ -13,7 +13,7 @@ import requests
 from mutagen.mp4 import MP4
 
 
-class Data_Handler:
+class DataHandler:
     def __init__(self):
         self.config_folder = "config"
         self.download_folder = "downloads"
@@ -38,6 +38,9 @@ class Data_Handler:
 
         if os.path.exists(self.channel_list_config_file):
             self.load_channel_list_from_file()
+
+        full_cookies_path = os.path.join(self.config_folder, "cookies.txt")
+        self.cookies_path = full_cookies_path if os.path.exists(full_cookies_path) else None
 
         task_thread = threading.Thread(target=self.schedule_checker)
         task_thread.daemon = True
@@ -253,6 +256,8 @@ class Data_Handler:
                     {"key": "ModifyChapters", "remove_sponsor_segments": ["sponsor"]},
                 ],
             }
+            if self.cookies_path:
+                ydl_opts["cookiefile"] = self.cookies_path
 
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
             logger.warning("yt_dl Start : " + link)
@@ -387,7 +392,7 @@ socketio = SocketIO(app)
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logger = logging.getLogger()
 
-data_handler = Data_Handler()
+data_handler = DataHandler()
 
 
 @app.route("/")
