@@ -242,7 +242,7 @@ class DataHandler:
             full_file_path = os.path.join(channel_folder_path, title + ".mp4")
             ydl_opts = {
                 "ffmpeg_location": "/usr/bin/ffmpeg",
-                "format": "137+140",
+                "format": "614+140",
                 "outtmpl": full_file_path,
                 "quiet": True,
                 "writethumbnail": True,
