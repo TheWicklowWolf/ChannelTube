@@ -239,12 +239,12 @@ class DataHandler:
         try:
             link = video["link"]
             title = self.string_cleaner(video["title"])
-            full_file_path = os.path.join(channel_folder_path, title)
+            full_file_path = os.path.join(channel_folder_path, title + ".mp4")
             ydl_opts = {
                 "ffmpeg_location": "/usr/bin/ffmpeg",
-                "format": "614/137+bestaudio/best",
+                "format": "137+140",
                 "outtmpl": full_file_path,
-                "quiet": False,
+                "quiet": True,
                 "writethumbnail": True,
                 "progress_hooks": [self.progress_callback],
                 "merge_output_format": "mp4",
@@ -265,7 +265,7 @@ class DataHandler:
             yt_downloader.download([link])
             logger.warning("yt_dl Complete : " + link)
 
-            self.add_datetime_to_metadata(full_file_path + ".mp4")
+            self.add_datetime_to_metadata(full_file_path)
 
         except Exception as e:
             logger.error(f"Error downloading video: {link}. Error message: {e}")
