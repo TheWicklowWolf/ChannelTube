@@ -21,6 +21,8 @@ class DataHandler:
         self.media_server_tokens = "Plex: abc, Jellyfin: xyz"
         self.media_server_library_name = "YouTube"
         self.media_server_scan_req_flag = False
+        self.video_format_id = os.environ.get("video_format_id", "137")
+        self.audio_format_id = os.environ.get("audio_format_id", "140")
 
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
@@ -242,7 +244,7 @@ class DataHandler:
             full_file_path = os.path.join(channel_folder_path, title + ".mp4")
             ydl_opts = {
                 "ffmpeg_location": "/usr/bin/ffmpeg",
-                "format": "614+140",
+                "format": f"{self.video_format_id}+{self.audio_format_id}",
                 "outtmpl": full_file_path,
                 "quiet": True,
                 "writethumbnail": True,
