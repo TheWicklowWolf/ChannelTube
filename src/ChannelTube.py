@@ -242,7 +242,7 @@ class DataHandler:
             full_file_path = os.path.join(channel_folder_path, title)
             ydl_opts = {
                 "ffmpeg_location": "/usr/bin/ffmpeg",
-                "format": "248/best+bestaudio/best",
+                "format": "614/137+bestaudio/best",
                 "outtmpl": full_file_path,
                 "quiet": False,
                 "writethumbnail": True,
