@@ -251,11 +251,10 @@ class DataHandler:
                 "progress_hooks": [self.progress_callback],
                 "merge_output_format": "mp4",
                 "postprocessors": [
-                    {
-                        "key": "EmbedThumbnail",
-                    },
+                    {"key": "EmbedThumbnail"},
                     {"key": "SponsorBlock", "categories": ["sponsor"]},
                     {"key": "ModifyChapters", "remove_sponsor_segments": ["sponsor"]},
+                    {"key": "FFmpegMetadata"},
                 ],
             }
             if self.cookies_path:
