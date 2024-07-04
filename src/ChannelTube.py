@@ -312,7 +312,7 @@ class DataHandler:
             mp4_file["\xa9ART"] = video["channel"]
             mp4_file["\xa9gen"] = video["channel"]
             mp4_file.save()
-            logger.warning(f"Added datetime {current_datetime} to metadata to {file_path}")
+            logger.warning(f'Added timestamp: {current_datetime} and Video ID: {video["id"]} to metadata of: {file_path}')
 
         except Exception as e:
             logger.error(f"Error adding metadata to {file_path}: {e}")
