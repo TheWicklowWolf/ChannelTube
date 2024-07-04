@@ -58,7 +58,7 @@ class DataHandler:
             self.media_server_library_name = ret["media_server_library_name"]
 
         except Exception as e:
-            logger.error("Error Loading Config: " + str(e))
+            logger.error(f"Error Loading Config: {str(e)}")
 
     def save_to_file(self):
         try:
@@ -75,7 +75,7 @@ class DataHandler:
                 )
 
         except Exception as e:
-            logger.error("Error Saving Config: " + str(e))
+            logger.error(f"Error Saving Config: {str(e)}")
 
     def load_channel_list_from_file(self):
         try:
@@ -83,7 +83,7 @@ class DataHandler:
                 self.req_channel_list = json.load(json_file)
 
         except Exception as e:
-            logger.error("Error Loading Channels: " + str(e))
+            logger.error(f"Error Loading Channels: {str(e)}")
 
     def save_channel_list_to_file(self):
         try:
@@ -91,7 +91,7 @@ class DataHandler:
                 json.dump(self.req_channel_list, json_file, indent=4)
 
         except Exception as e:
-            logger.error("Error Saving Channels: " + str(e))
+            logger.error(f"Error Saving Channels: {str(e)}")
 
     def schedule_checker(self):
         while True:
@@ -99,11 +99,11 @@ class DataHandler:
             within_sync_window = any(datetime.time(t, 0, 0) <= current_time <= datetime.time(t, 59, 59) for t in self.sync_start_times)
 
             if within_sync_window:
-                logger.warning("Time to Start Sync - as in a time window " + str(self.sync_start_times))
+                logger.warning(f"Time to Start Sync - as in a time window {str(self.sync_start_times)}")
                 self.master_queue()
                 logger.warning("Big sleep for 1 Hour - Sync Complete")
                 time.sleep(3600)
-                logger.warning("Checking every 60 seconds as not in sync time window " + str(self.sync_start_times))
+                logger.warning(f"Checking every 60 seconds as not in sync time window {str(self.sync_start_times)}")
             else:
                 time.sleep(60)
 
@@ -148,21 +148,23 @@ class DataHandler:
             try:
                 video_title = video["title"]
                 video_link_in_playlist = video["url"]
-                logger.warning(video_title + " : " + video_link_in_playlist)
+                logger.warning(f"{video_title} -> {video_link_in_playlist}")
 
                 duration = video["duration"]
+                channel = video["channel"].strip()
                 actual_video = ydl.extract_info(video_link_in_playlist, download=False)
 
                 video_actual_link = actual_video["webpage_url"]
                 video_date_raw = actual_video["upload_date"]
+                video_id = actual_video["id"]
                 video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
 
                 if video_date >= last_date:
                     if duration > 60:
-                        video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link})
-                        logger.warning("Added Video to List: " + video_title)
+                        video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
+                        logger.warning(f"Added Video to List: {video_title}")
                     else:
-                        logger.warning("Ignoring Short Video: " + video_title + " " + video_actual_link)
+                        logger.warning(f"Ignoring Short Video: {video_title} - {video_actual_link}")
                 else:
                     logger.warning("No more Videos in date range")
                     break
@@ -180,17 +182,39 @@ class DataHandler:
             if not os.path.exists(channel_folder_path):
                 os.makedirs(channel_folder_path)
 
-            raw_directory_list = os.listdir(channel_folder_path)
-            directory_list = self.string_cleaner(raw_directory_list)
-
             for vid in video_list:
-                if self.string_cleaner(vid["title"]) not in directory_list:
-                    logger.warning("Starting Download : " + vid["title"])
+                if not self.is_video_in_folder(vid, channel_folder_path):
+                    logger.warning(f'Starting Download: {vid["title"]}')
                     self.download_video(vid, channel_folder_path)
-                else:
-                    logger.warning("File Already in folder: " + vid["title"])
+
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"Error checking download {str(e)}")
+
+    def is_video_in_folder(self, vid, channel_folder_path):
+        try:
+            raw_directory_list = os.listdir(channel_folder_path)
+
+            if f'{self.string_cleaner(vid["title"])}.mp4' in raw_directory_list:
+                logger.warning(f'Video File Already in folder: {vid["title"]}')
+                return True
+
+            for filename in raw_directory_list:
+                file_path = os.path.join(channel_folder_path, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        mp4_file = MP4(file_path)
+                        embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
+                        if embedded_video_id == vid["id"]:
+                            logger.warning(f'Video ID for: {vid["title"]} found embedded in: {file_path}')
+                            return True
+
+                    except Exception as e:
+                        logger.error(f"No Video ID present or cannot read it from metadata: {e}")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error checking if video is in folder: {str(e)}")
+            return False
 
     def cleanup_old_files(self, channel):
         channel_folder = channel["Name"]
@@ -206,7 +230,7 @@ class DataHandler:
             for filename in raw_directory_list:
                 file_path = os.path.join(channel_folder_path, filename)
 
-                if os.path.isfile(file_path):
+                if os.path.isfile(file_path) and filename.lower().endswith(".mp4"):
                     try:
                         mp4_file = MP4(file_path)
                         mp4_created_timestamp = mp4_file.get("\xa9day", [None])[0]
@@ -233,7 +257,7 @@ class DataHandler:
                         logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days")
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"Error Cleaning Old Files: {str(e)}")
 
     def download_video(self, video, channel_folder_path):
         if self.media_server_scan_req_flag == False:
@@ -241,7 +265,7 @@ class DataHandler:
         try:
             link = video["link"]
             title = self.string_cleaner(video["title"])
-            full_file_path = os.path.join(channel_folder_path, title + ".mp4")
+            full_file_path = os.path.join(channel_folder_path, f"{title}.mp4")
             ydl_opts = {
                 "ffmpeg_location": "/usr/bin/ffmpeg",
                 "format": f"{self.video_format_id}+{self.audio_format_id}",
@@ -261,12 +285,12 @@ class DataHandler:
                 ydl_opts["cookiefile"] = self.cookies_path
 
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
-            logger.warning("yt_dl Start : " + link)
+            logger.warning(f"yt_dl Start: {link}")
 
             yt_downloader.download([link])
-            logger.warning("yt_dl Complete : " + link)
+            logger.warning(f"yt_dl Complete: {link}")
 
-            self.add_datetime_to_metadata(full_file_path)
+            self.add_extra_metadata(full_file_path, video)
 
         except Exception as e:
             logger.error(f"Error downloading video: {link}. Error message: {e}")
@@ -278,32 +302,36 @@ class DataHandler:
         elif d["status"] == "downloading":
             logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
 
-    def add_datetime_to_metadata(self, file_path):
+    def add_extra_metadata(self, file_path, video):
         try:
             current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             mp4_file = MP4(file_path)
             mp4_file["\xa9day"] = current_datetime
+            mp4_file["\xa9cmt"] = video["id"]
+            mp4_file["\xa9nam"] = video["title"]
+            mp4_file["\xa9ART"] = video["channel"]
+            mp4_file["\xa9gen"] = video["channel"]
             mp4_file.save()
             logger.warning(f"Added datetime {current_datetime} to metadata to {file_path}")
 
         except Exception as e:
-            logger.error(f"Error adding datetime {current_datetime} to {file_path} metadata: {e}")
+            logger.error(f"Error adding metadata to {file_path}: {e}")
 
     def master_queue(self):
         try:
             self.media_server_scan_req_flag = False
             logger.warning("Sync Task started...")
             for channel in self.req_channel_list:
-                logging.warning("Looking for channel Videos on YouTube: " + channel["Name"])
+                logging.warning(f'Looking for channel Videos on YouTube:  {channel["Name"]}')
                 vid_list = self.get_list_of_videos(channel)
 
-                logging.warning("Starting Downloading List: " + channel["Name"])
+                logging.warning(f'Starting Downloading List: {channel["Name"]}')
                 self.check_and_download(vid_list, channel)
-                logging.warning("Finished Downloading List: " + channel["Name"])
+                logging.warning(f'Finished Downloading List: {channel["Name"]}')
 
-                logging.warning("Start Clearing Files: " + channel["Name"])
+                logging.warning(f'Start Clearing Files: {channel["Name"]}')
                 self.cleanup_old_files(channel)
-                logging.warning("Finished Clearing Files: " + channel["Name"])
+                logging.warning(f'Finished Clearing Files: {channel["Name"]}')
 
                 channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
 
@@ -317,7 +345,7 @@ class DataHandler:
                 logger.warning("Media Server Sync not required")
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"Error in Queue: {str(e)}")
             logger.warning("Finished: Incomplete")
 
         else:
@@ -339,7 +367,7 @@ class DataHandler:
                 library_section.update()
                 logger.warning(f"Plex Library scan for '{self.media_server_library_name}' started.")
             except Exception as e:
-                logger.warning(f"Plex Library scan failed: " + str(e))
+                logger.warning(f"Plex Library scan failed: {str(e)}")
         if "Jellyfin" in media_servers and "Jellyfin" in media_tokens:
             try:
                 token = media_tokens.get("Jellyfin")
@@ -352,7 +380,7 @@ class DataHandler:
                 else:
                     logger.warning(f"Jellyfin Error: {response.status_code}, {response.text}")
             except Exception as e:
-                logger.warning(f"Jellyfin Library scan failed: " + str(e))
+                logger.warning(f"Jellyfin Library scan failed: {str(e)}")
 
     def string_cleaner(self, input_string):
         if isinstance(input_string, str):
@@ -445,10 +473,10 @@ def updateSettings(data):
         data_handler.sync_start_times = cleaned_sync_start_times
 
     except Exception as e:
-        logger.error(str(e))
+        logger.error(f"Error Updating settings: {str(e)}")
         data_handler.sync_start_times = [0]
     finally:
-        logger.warning("Sync Times: " + str(data_handler.sync_start_times))
+        logger.warning(f"Sync Times: {str(data_handler.sync_start_times)}")
     data_handler.save_to_file()
 
 
