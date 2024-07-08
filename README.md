@@ -5,7 +5,7 @@
 ![full_logo](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/c07c2794-d537-407e-9f5b-83098244f6c7)
 
 
-Web GUI for synchronising and fetching content from a YouTube channel.
+ChannelTube is a tool for synchronizing and fetching content from YouTube channels using yt-dlp.
 
 
 ## Run using docker-compose
