@@ -44,5 +44,7 @@ To utilize a cookies file with yt-dlp, follow these steps:
 
 ![ChannelTubeDark](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/1e09a757-55cd-42bd-b3cb-aadd7152bd2e)
 
+---
+
 
 https://hub.docker.com/r/thewicklowwolf/channeltube
