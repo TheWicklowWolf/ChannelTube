@@ -1,4 +1,4 @@
-name: update-yt-dlp
+name: autoupdate-yt-dlp
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     - cron: '0 12 * * 1,5'
 
 jobs:
-  update-yt-dlp:
+  autoupdate-yt-dlp:
     runs-on: ubuntu-latest
     
     steps:
@@ -39,8 +39,8 @@ jobs:
         run: |
           latest_version=${{ env.LATEST_VERSION }}
           sed -i "s/^yt_dlp.*/yt_dlp==$latest_version/" requirements.txt
-          git config --global user.email "yt-dlp@update"
-          git config --global user.name "yt-dlp-update"
+          git config --global user.email "yt-dlp@autoupdate"
+          git config --global user.name "yt-dlp-autoupdate"
           git add requirements.txt
           git commit -m "Update yt-dlp version to $latest_version"
           git push
