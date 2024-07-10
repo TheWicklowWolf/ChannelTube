@@ -103,9 +103,9 @@ class DataHandler:
                 self.master_queue()
                 logger.warning("Big sleep for 1 Hour - Sync Complete")
                 time.sleep(3600)
-                logger.warning(f"Checking every 60 seconds as not in sync time window {str(self.sync_start_times)}")
+                logger.warning(f"Checking every 10 minutes as not in sync time window {str(self.sync_start_times)}")
             else:
-                time.sleep(60)
+                time.sleep(600)
 
     def get_list_of_videos(self, channel):
         channel_name = channel["Name"]
