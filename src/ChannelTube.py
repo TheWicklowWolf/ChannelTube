@@ -23,6 +23,7 @@ class DataHandler:
         self.media_server_scan_req_flag = False
         self.video_format_id = os.environ.get("video_format_id", "137")
         self.audio_format_id = os.environ.get("audio_format_id", "140")
+        self.defer_hours = float(os.environ.get("defer_hours", "0"))
 
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
@@ -154,17 +155,26 @@ class DataHandler:
                 channel = video["channel"].strip()
                 actual_video = ydl.extract_info(video_link_in_playlist, download=False)
 
+                video_id = actual_video["id"]
                 video_actual_link = actual_video["webpage_url"]
                 video_date_raw = actual_video["upload_date"]
-                video_id = actual_video["id"]
                 video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
 
+                video_timestamp = actual_video["timestamp"]
+                current_time = time.time()
+                age_in_hours = (current_time - video_timestamp) / 3600
+
+                if duration <= 60:
+                    logger.warning(f"Ignoring Short Video: {video_title} - {video_actual_link}")
+                    continue
+
+                if age_in_hours < self.defer_hours:
+                    logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
+                    continue
+
                 if video_date >= last_date:
-                    if duration > 60:
-                        video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
-                        logger.warning(f"Added Video to List: {video_title}")
-                    else:
-                        logger.warning(f"Ignoring Short Video: {video_title} - {video_actual_link}")
+                    video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
+                    logger.warning(f"Added Video to List: {video_title}")
                 else:
                     logger.warning("No more Videos in date range")
                     break
