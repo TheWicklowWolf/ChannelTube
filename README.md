@@ -30,6 +30,7 @@ Certain values can be set via environment variables:
 
 * __video_format_id__: The ID for the video format. Defaults to `137`.
 * __audio_format_id__: The ID for the audio format. Defaults to `140`.
+* __defer_hours__: Time to defer in hours. Defaults to `0`.
 
 > See [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 > 
