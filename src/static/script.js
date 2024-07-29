@@ -71,20 +71,36 @@ function createEditModalsAndListeners() {
                                     <label for="channelName${index}">Channel Name:</label>
                                     <input type="text" class="form-control" id="channelName${index}" value="${channel.Name}">
                                 </div>
-                                <div class="form-group my-4">
+                                <div class="form-group my-3">
                                     <label for="channelLink${index}">Channel Link:</label>
                                     <input type="text" class="form-control" id="channelLink${index}" value="${channel.Link}">
                                 </div>
-                                <div class="form-group my-4">
+                                <div class="form-group my-3">
                                     <label for="dlDays${index}">Days to Sync:</label>
                                     <input type="number" class="form-control" min="0" id="dlDays${index}" value="${channel.DL_Days}">
                                 </div>
-                                <div class="form-group">
-                                    <label for="keepDays${index}">Days to keep:</label>
+                                <div class="form-group my-3">
+                                    <label for="keepDays${index}">Days to Keep:</label>
                                     <input type="number" class="form-control" min="0" id="keepDays${index}" value="${channel.Keep_Days}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="filterTitleText${index}" class="me-2 mb-0">Filter Title Text:</label>
+                                    <div class="form-group d-flex align-items-center">
+                                        <input type="text" class="form-control me-2" id="filterTitleText${index}" value="${channel.Filter_Title_Text || ''}">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="negateFilter${index}" ${channel.Negate_Filter ? 'checked' : ''}>
+                                            <label class="form-check-label" for="negateFilter${index}">
+                                                Negate
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <p id="filterTextDescription${index}" class="m-1 text-secondary">
+                                        ${channel.Negate_Filter ? "Videos with this text in the title are not downloaded." : "Only videos with this text in the title are downloaded."}
+                                    </p>
                                 </div>
                             </form>
                         </div>
+                        
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-primary" onclick="saveChannelSettings(${index})">Save Changes</button>
@@ -94,6 +110,17 @@ function createEditModalsAndListeners() {
             </div>
         `;
         document.body.appendChild(editModal);
+
+        const negateCheckbox = document.getElementById(`negateFilter${index}`);
+        const description = document.getElementById(`filterTextDescription${index}`);
+
+        negateCheckbox.addEventListener('change', function () {
+            if (negateCheckbox.checked) {
+                description.textContent = "Videos with this text in the title are not downloaded.";
+            } else {
+                description.textContent = "Only videos with this text in the title are downloaded.";
+            }
+        });
     });
 }
 
@@ -102,6 +129,9 @@ function saveChannelSettings(index) {
     channels[index].Link = document.getElementById(`channelLink${index}`).value;
     channels[index].DL_Days = parseInt(document.getElementById(`dlDays${index}`).value, 10);
     channels[index].Keep_Days = parseInt(document.getElementById(`keepDays${index}`).value, 10);
+    channels[index].Filter_Title_Text = document.getElementById(`filterTitleText${index}`).value;
+    channels[index].Negate_Filter = document.getElementById(`negateFilter${index}`).checked;
+
     socket.emit("save_channel_settings", { "channel": channels[index] });
     var save_message_channel_edit = document.getElementById(`save-message-channel-edit${index}`);
     save_message_channel_edit.style.display = "block";
@@ -114,7 +144,18 @@ function saveChannelSettings(index) {
 socket.on("Update", updated_info);
 
 document.getElementById("add-channel").addEventListener("click", function () {
-    channels.push({ Name: "New Channel", Link: "Channel URL", "Keep_Days": 28, "DL_Days": 14, Last_Synced: "Never", Video_Count: 0 });
+    channels.push(
+        {
+            Name: "New Channel",
+            Link: "Channel URL",
+            Keep_Days: 28,
+            DL_Days: 14,
+            Last_Synced: "Never",
+            Video_Count: 0,
+            Filter_Title_Text: "",
+            Negate_Filter: false,
+        }
+    );
     renderChannels();
     createEditModalsAndListeners();
 });
