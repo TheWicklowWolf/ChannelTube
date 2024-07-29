@@ -82,6 +82,7 @@ class DataHandler:
         try:
             with open(self.channel_list_config_file, "r") as json_file:
                 self.req_channel_list = json.load(json_file)
+            self.req_channel_list.sort(key=lambda channel: channel.get("Name", ""))
 
         except Exception as e:
             logger.error(f"Error Loading Channels: {str(e)}")
@@ -149,19 +150,23 @@ class DataHandler:
             try:
                 video_title = video["title"]
                 video_link_in_playlist = video["url"]
-                logger.warning(f"{video_title} -> {video_link_in_playlist}")
-
                 duration = video["duration"]
-                actual_video = ydl.extract_info(video_link_in_playlist, download=False)
+                logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds -> {video_link_in_playlist}")
 
-                video_id = actual_video["id"]
-                video_actual_link = actual_video["webpage_url"]
-                video_date_raw = actual_video["upload_date"]
+                actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
+
+                video_id = actual_video_info["id"]
+                video_actual_link = actual_video_info["webpage_url"]
+                video_date_raw = actual_video_info["upload_date"]
                 video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
 
-                video_timestamp = actual_video["timestamp"]
+                video_timestamp = actual_video_info["timestamp"]
                 current_time = time.time()
                 age_in_hours = (current_time - video_timestamp) / 3600
+
+                if video_date < last_date:
+                    logger.warning("No more videos in date range")
+                    break
 
                 if duration <= 60:
                     logger.warning(f"Ignoring Short Video: {video_title} - {video_actual_link}")
@@ -173,17 +178,15 @@ class DataHandler:
 
                 if channel.get("Filter_Title_Text"):
                     if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
+                        logger.warning(f'Skipped Video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
                     if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
+                        logger.warning(f'Skipped Video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
-                if video_date >= last_date:
-                    video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
-                    logger.warning(f"Added Video to List: {video_title}")
-                else:
-                    logger.warning("No more Videos in date range")
-                    break
+                video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
+                logger.warning(f"Added Video to Download List: {video_title} -> {video_actual_link}")
 
             except Exception as e:
                 logger.error(f"Error extracting details of {video_title}: {str(e)}")
@@ -338,7 +341,7 @@ class DataHandler:
             self.media_server_scan_req_flag = False
             logger.warning("Sync Task started...")
             for channel in self.req_channel_list:
-                logging.warning(f'Looking for channel Videos on YouTube:  {channel["Name"]}')
+                logging.warning(f'Looking for videos of: {channel["Name"]} at {channel["Link"]} ')
                 vid_list = self.get_list_of_videos(channel)
 
                 logging.warning(f'Starting Downloading List: {channel["Name"]}')
