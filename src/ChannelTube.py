@@ -351,7 +351,11 @@ class DataHandler:
 
                 channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
 
-            self.save_channel_list_to_file()
+            if self.req_channel_list:
+                self.save_channel_list_to_file()
+            else:
+                logger.warning("Channel List Empty")
+
             data = {"Channel_List": self.req_channel_list}
             socketio.emit("Update", data)
 
