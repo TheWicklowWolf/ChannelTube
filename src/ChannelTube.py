@@ -152,7 +152,6 @@ class DataHandler:
                 logger.warning(f"{video_title} -> {video_link_in_playlist}")
 
                 duration = video["duration"]
-                channel = video["channel"].strip()
                 actual_video = ydl.extract_info(video_link_in_playlist, download=False)
 
                 video_id = actual_video["id"]
@@ -171,6 +170,13 @@ class DataHandler:
                 if age_in_hours < self.defer_hours:
                     logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
                     continue
+
+                if channel.get("Filter_Title_Text"):
+                    if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
+                        continue
+
+                    if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
+                        continue
 
                 if video_date >= last_date:
                     video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
