@@ -154,13 +154,12 @@ class DataHandler:
                 logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds -> {video_link_in_playlist}")
 
                 actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
-
                 video_id = actual_video_info["id"]
                 video_actual_link = actual_video_info["webpage_url"]
                 video_date_raw = actual_video_info["upload_date"]
                 video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
-
                 video_timestamp = actual_video_info["timestamp"]
+
                 current_time = time.time()
                 age_in_hours = (current_time - video_timestamp) / 3600
 
