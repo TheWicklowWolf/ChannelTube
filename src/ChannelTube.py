@@ -25,7 +25,7 @@ class DataHandler:
         self.video_format_id = os.environ.get("video_format_id", "137")
         self.audio_format_id = os.environ.get("audio_format_id", "140")
         self.defer_hours = float(os.environ.get("defer_hours", "0"))
-        self.thread_limit = int(os.environ.get("thread_limit", "8"))
+        self.thread_limit = int(os.environ.get("thread_limit", "1"))
 
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
