@@ -113,8 +113,8 @@ class DataHandler:
 
     def get_list_of_videos(self, channel):
         channel_name = channel["Name"]
-
         days_to_retrieve = channel["DL_Days"]
+
         ydl_opts = {
             "quiet": True,
             "extract_flat": True,
@@ -153,11 +153,13 @@ class DataHandler:
                 video_title = video["title"]
                 video_link_in_playlist = video["url"]
                 duration = video["duration"]
+                actual_channel_name = video["channel"]
+
                 logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds")
 
                 actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
                 video_id = actual_video_info["id"]
-                video_actual_link = actual_video_info["webpage_url"]
+                actual_video_link = actual_video_info["webpage_url"]
                 video_date_raw = actual_video_info["upload_date"]
                 video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
                 video_timestamp = actual_video_info["timestamp"]
@@ -170,7 +172,7 @@ class DataHandler:
                     break
 
                 if duration <= 60:
-                    logger.warning(f"Ignoring Short Video: {video_title} - {video_actual_link}")
+                    logger.warning(f"Ignoring Short Video: {video_title} - {actual_video_link}")
                     continue
 
                 if age_in_hours < self.defer_hours:
@@ -186,8 +188,8 @@ class DataHandler:
                         logger.warning(f'Skipped Video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
-                video_list.append({"title": video_title, "upload_date": video_date, "link": video_actual_link, "id": video_id, "channel": channel})
-                logger.warning(f"Added Video to Download List: {video_title} -> {video_actual_link}")
+                video_list.append({"title": video_title, "upload_date": video_date, "link": actual_video_link, "id": video_id, "channel_name": actual_channel_name})
+                logger.warning(f"Added Video to Download List: {video_title} -> {actual_video_link}")
 
             except Exception as e:
                 logger.error(f"Error extracting details of {video_title}: {str(e)}")
@@ -331,8 +333,9 @@ class DataHandler:
             mp4_file["\xa9day"] = current_datetime
             mp4_file["\xa9cmt"] = video["id"]
             mp4_file["\xa9nam"] = video["title"]
-            mp4_file["\xa9ART"] = video["channel"]
-            mp4_file["\xa9gen"] = video["channel"]
+            mp4_file["\xa9ART"] = video["channel_name"]
+            mp4_file["\xa9gen"] = video["channel_name"]
+            mp4_file["\xa9pub"] = video["channel_name"]
             mp4_file.save()
             logger.warning(f'Added timestamp: {current_datetime} and Video ID: {video["id"]} to metadata of: {file_path}')
 
