@@ -153,7 +153,7 @@ class DataHandler:
                 video_title = video["title"]
                 video_link_in_playlist = video["url"]
                 duration = video["duration"]
-                logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds -> {video_link_in_playlist}")
+                logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds")
 
                 actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
                 video_id = actual_video_info["id"]
@@ -257,25 +257,25 @@ class DataHandler:
                         mp4_created_timestamp = mp4_file.get("\xa9day", [None])[0]
                         if mp4_created_timestamp:
                             file_mtime = datetime.datetime.strptime(mp4_created_timestamp, "%Y-%m-%d %H:%M:%S")
-                            logger.warning(f"Extracted datetime from metadata: {file_mtime}")
+                            logger.warning(f"Extracted datetime {file_mtime} from metadata of {filename}")
                         else:
                             raise Exception("No timestamp found")
 
                     except Exception as e:
                         logger.error(f"Error extracting datetime from metadata: {e}")
                         file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-                        logger.error(f"Using Modified timestamp instead.... {file_mtime}")
+                        logger.error(f"Using Modified timestamp instead.... {file_mtime} for {filename}")
 
                     age = current_datetime - file_mtime
 
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
-                        logger.warning(f"Deleted: {filename} as it is {age.days} days old")
+                        logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
                         if self.media_server_scan_req_flag == False:
                             self.media_server_scan_req_flag = True
                     else:
                         channel["Video_Count"] += 1
-                        logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days")
+                        logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
 
         except Exception as e:
             logger.error(f"Error Cleaning Old Files: {str(e)}")
@@ -370,16 +370,16 @@ class DataHandler:
 
     def process_channel(self, channel):
         try:
-            logger.warning(f'Getting list of videos for channel: {channel["Name"]} at {channel["Link"]}')
+            logger.warning(f'Getting list of videos for channel: {channel["Name"]} from {channel["Link"]}')
             video_download_list = self.get_list_of_videos(channel)
 
             logger.warning(f'Downloading Video List for: {channel["Name"]}')
             self.check_and_download(video_download_list, channel)
-            logger.warning(f'Finished Downloading Videos for: {channel["Name"]}')
+            logger.warning(f'Finished Downloading Videos for channel: {channel["Name"]}')
 
             logger.warning(f'Clearing Files for: {channel["Name"]}')
             self.cleanup_old_files(channel)
-            logger.warning(f'Finished Clearing Files for: {channel["Name"]}')
+            logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
             logger.warning(f'Completed processing for channel: {channel["Name"]}')
