@@ -1,16 +1,17 @@
 import logging
+import re
 import os
+import json
 import time
 import datetime
 import threading
-import re
+from mutagen.mp4 import MP4
+import concurrent.futures
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import yt_dlp
-import json
 from plexapi.server import PlexServer
 import requests
-from mutagen.mp4 import MP4
 
 
 class DataHandler:
@@ -24,6 +25,7 @@ class DataHandler:
         self.video_format_id = os.environ.get("video_format_id", "137")
         self.audio_format_id = os.environ.get("audio_format_id", "140")
         self.defer_hours = float(os.environ.get("defer_hours", "0"))
+        self.thread_limit = int(os.environ.get("thread_limit", "8"))
 
         if not os.path.exists(self.config_folder):
             os.makedirs(self.config_folder)
@@ -37,7 +39,7 @@ class DataHandler:
         self.channel_list_config_file = os.path.join(self.config_folder, "channel_list.json")
 
         if os.path.exists(self.settings_config_file):
-            self.load_from_file()
+            self.load_settings_from_file()
 
         if os.path.exists(self.channel_list_config_file):
             self.load_channel_list_from_file()
@@ -49,7 +51,7 @@ class DataHandler:
         task_thread.daemon = True
         task_thread.start()
 
-    def load_from_file(self):
+    def load_settings_from_file(self):
         try:
             with open(self.settings_config_file, "r") as json_file:
                 ret = json.load(json_file)
@@ -61,7 +63,7 @@ class DataHandler:
         except Exception as e:
             logger.error(f"Error Loading Config: {str(e)}")
 
-    def save_to_file(self):
+    def save_settings_to_file(self):
         try:
             with open(self.settings_config_file, "w") as json_file:
                 json.dump(
@@ -200,34 +202,35 @@ class DataHandler:
             if not os.path.exists(channel_folder_path):
                 os.makedirs(channel_folder_path)
 
-            for vid in video_list:
-                if not self.is_video_in_folder(vid, channel_folder_path):
-                    logger.warning(f'Starting Download: {vid["title"]}')
-                    self.download_video(vid, channel_folder_path)
+            for video in video_list:
+                if not self.is_video_in_folder(video, channel_folder_path):
+                    logger.warning(f'Starting Download: {video["title"]}')
+                    self.download_video(video, channel_folder_path)
 
         except Exception as e:
-            logger.error(f"Error checking download {str(e)}")
+            logger.error(f"Error checking file download: {str(e)}")
 
-    def is_video_in_folder(self, vid, channel_folder_path):
+    def is_video_in_folder(self, video, channel_folder_path):
         try:
             raw_directory_list = os.listdir(channel_folder_path)
 
-            if f'{self.string_cleaner(vid["title"])}.mp4' in raw_directory_list:
-                logger.warning(f'Video File Already in folder: {vid["title"]}')
+            if f'{self.string_cleaner(video["title"])}.mp4' in raw_directory_list:
+                logger.warning(f'Video File Already in folder: {video["title"]}')
                 return True
 
             for filename in raw_directory_list:
-                file_path = os.path.join(channel_folder_path, filename)
-                if os.path.isfile(file_path):
-                    try:
-                        mp4_file = MP4(file_path)
-                        embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
-                        if embedded_video_id == vid["id"]:
-                            logger.warning(f'Video ID for: {vid["title"]} found embedded in: {file_path}')
-                            return True
+                if filename.lower().endswith(".mp4"):
+                    file_path = os.path.join(channel_folder_path, filename)
+                    if os.path.isfile(file_path):
+                        try:
+                            mp4_file = MP4(file_path)
+                            embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
+                            if embedded_video_id == video["id"]:
+                                logger.warning(f'Video ID for: {video["title"]} found embedded in: {file_path}')
+                                return True
 
-                    except Exception as e:
-                        logger.error(f"No Video ID present or cannot read it from metadata: {e}")
+                        except Exception as e:
+                            logger.error(f"No Video ID present or cannot read it from metadata: {e}")
             return False
 
         except Exception as e:
@@ -303,10 +306,10 @@ class DataHandler:
                 ydl_opts["cookiefile"] = self.cookies_path
 
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
-            logger.warning(f"yt_dl Start: {link}")
+            logger.warning(f"yt_dlp -> Starting to download: {link}")
 
             yt_downloader.download([link])
-            logger.warning(f"yt_dl Complete: {link}")
+            logger.warning(f"yt_dlp -> Finished: {link}")
 
             self.add_extra_metadata(full_file_path, video)
 
@@ -316,6 +319,7 @@ class DataHandler:
     def progress_callback(self, d):
         if d["status"] == "finished":
             logger.warning("Download complete")
+            logger.warning("Processing File...")
 
         elif d["status"] == "downloading":
             logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
@@ -339,19 +343,10 @@ class DataHandler:
         try:
             self.media_server_scan_req_flag = False
             logger.warning("Sync Task started...")
-            for channel in self.req_channel_list:
-                logging.warning(f'Looking for videos of: {channel["Name"]} at {channel["Link"]} ')
-                vid_list = self.get_list_of_videos(channel)
 
-                logging.warning(f'Starting Downloading List: {channel["Name"]}')
-                self.check_and_download(vid_list, channel)
-                logging.warning(f'Finished Downloading List: {channel["Name"]}')
-
-                logging.warning(f'Start Clearing Files: {channel["Name"]}')
-                self.cleanup_old_files(channel)
-                logging.warning(f'Finished Clearing Files: {channel["Name"]}')
-
-                channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.thread_limit) as executor:
+                futures = [executor.submit(self.process_channel, channel) for channel in self.req_channel_list]
+                concurrent.futures.wait(futures)
 
             if self.req_channel_list:
                 self.save_channel_list_to_file()
@@ -368,10 +363,29 @@ class DataHandler:
 
         except Exception as e:
             logger.error(f"Error in Queue: {str(e)}")
-            logger.warning("Finished: Incomplete")
+            logger.warning("Sync Finished: Incomplete")
 
         else:
-            logger.warning("Finished: Complete")
+            logger.warning("Sync Finished: Complete")
+
+    def process_channel(self, channel):
+        try:
+            logger.warning(f'Getting list of videos for channel: {channel["Name"]} at {channel["Link"]}')
+            video_download_list = self.get_list_of_videos(channel)
+
+            logger.warning(f'Downloading Video List for: {channel["Name"]}')
+            self.check_and_download(video_download_list, channel)
+            logger.warning(f'Finished Downloading Videos for: {channel["Name"]}')
+
+            logger.warning(f'Clearing Files for: {channel["Name"]}')
+            self.cleanup_old_files(channel)
+            logger.warning(f'Finished Clearing Files for: {channel["Name"]}')
+
+            channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
+            logger.warning(f'Completed processing for channel: {channel["Name"]}')
+
+        except Exception as e:
+            logger.error(f'Error processing channel {channel["Name"]}: {str(e)}')
 
     def add_channel(self, channel):
         self.req_channel_list.extend(channel)
@@ -499,7 +513,7 @@ def updateSettings(data):
         data_handler.sync_start_times = [0]
     finally:
         logger.warning(f"Sync Times: {str(data_handler.sync_start_times)}")
-    data_handler.save_to_file()
+    data_handler.save_settings_to_file()
 
 
 @socketio.on("add_channel")
