@@ -28,11 +28,12 @@ services:
 
 Certain values can be set via environment variables:
 
-* __video_format_id__: The ID for the video format. Defaults to `137`.
-* __audio_format_id__: The ID for the audio format. Defaults to `140`.
-* __defer_hours__: Time to defer in hours. Defaults to `0`.
+* __video_format_id__: Specifies the ID for the video format. The default value is `137`.
+* __audio_format_id__: Specifies the ID for the audio format. The default value is `140`.
+* __defer_hours__: Defines the time to defer in hours. The default value is `0`.
+* __thread_limit__: Sets the maximum number of threads to use. The default value is `1`.
 
-> See [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
+> For information on format IDs, refer to [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 > 
 > ![yt-dlp-formats](https://github.com/user-attachments/assets/e03b9dd3-028f-4c72-b822-06aa1d440cea)
 
@@ -40,6 +41,7 @@ Certain values can be set via environment variables:
 ## Sync Schedule
 
 Use a comma-separated list of hours to search for new videos (e.g. `2, 20` will initiate a video search at 2 AM and 8 PM).
+> Note: There is a deadband of up to 10 minutes from the scheduled start time.
 
 ## Media Server Integration (optional)
 
