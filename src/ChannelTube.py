@@ -502,7 +502,7 @@ def updateSettings(data):
     data_handler.media_server_library_name = data["media_server_library_name"]
     try:
         if data["sync_start_times"] == "":
-            raise Exception("No Time Entered, defaulting to 00:00")
+            raise Exception("No Time Entered, defaulting to 0 (i.e. 12 am)")
         raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
         temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
         cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
