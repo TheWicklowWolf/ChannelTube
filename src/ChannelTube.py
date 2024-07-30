@@ -98,6 +98,8 @@ class DataHandler:
             logger.error(f"Error Saving Channels: {str(e)}")
 
     def schedule_checker(self):
+        logger.warning("Starting periodic checks every 10 minutes to monitor sync start times.")
+        logger.warning(f"Current scheduled hours to start sync (in 24-hour format): {self.sync_start_times}")
         while True:
             current_time = datetime.datetime.now().time()
             within_sync_window = any(datetime.time(t, 0, 0) <= current_time <= datetime.time(t, 59, 59) for t in self.sync_start_times)
