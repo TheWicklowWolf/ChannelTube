@@ -16,6 +16,15 @@ import requests
 
 class DataHandler:
     def __init__(self):
+        logging.basicConfig(level=logging.WARNING, format="%(message)s")
+        self.general_logger = logging.getLogger()
+
+        app_name_text = os.path.basename(__file__).replace(".py", "")
+        release_version = os.environ.get("RELEASE_VERSION", "unknown")
+        self.general_logger.warning(f"{'*' * 50}\n")
+        self.general_logger.warning(f"{app_name_text} Version: {release_version}\n")
+        self.general_logger.warning(f"{'*' * 50}")
+
         self.config_folder = "config"
         self.download_folder = "downloads"
         self.media_server_addresses = "Plex: http://192.168.1.2:32400, Jellyfin: http://192.168.1.2:8096"
@@ -61,7 +70,7 @@ class DataHandler:
             self.media_server_library_name = ret["media_server_library_name"]
 
         except Exception as e:
-            logger.error(f"Error Loading Config: {str(e)}")
+            self.general_logger.error(f"Error Loading Config: {str(e)}")
 
     def save_settings_to_file(self):
         try:
@@ -78,7 +87,10 @@ class DataHandler:
                 )
 
         except Exception as e:
-            logger.error(f"Error Saving Config: {str(e)}")
+            self.general_logger.error(f"Error Saving Config: {str(e)}")
+
+        else:
+            self.general_logger.warning(f"Settings Saved.")
 
     def load_channel_list_from_file(self):
         try:
@@ -87,7 +99,7 @@ class DataHandler:
             self.req_channel_list.sort(key=lambda channel: channel.get("Name", ""))
 
         except Exception as e:
-            logger.error(f"Error Loading Channels: {str(e)}")
+            self.general_logger.error(f"Error Loading Channels: {str(e)}")
 
     def save_channel_list_to_file(self):
         try:
@@ -95,21 +107,21 @@ class DataHandler:
                 json.dump(self.req_channel_list, json_file, indent=4)
 
         except Exception as e:
-            logger.error(f"Error Saving Channels: {str(e)}")
+            self.general_logger.error(f"Error Saving Channels: {str(e)}")
 
     def schedule_checker(self):
-        logger.warning("Starting periodic checks every 10 minutes to monitor sync start times.")
-        logger.warning(f"Current scheduled hours to start sync (in 24-hour format): {self.sync_start_times}")
+        self.general_logger.warning("Starting periodic checks every 10 minutes to monitor sync start times.")
+        self.general_logger.warning(f"Current scheduled hours to start sync (in 24-hour format): {self.sync_start_times}")
         while True:
             current_time = datetime.datetime.now().time()
             within_sync_window = any(datetime.time(t, 0, 0) <= current_time <= datetime.time(t, 59, 59) for t in self.sync_start_times)
 
             if within_sync_window:
-                logger.warning(f"Time to Start Sync - as in a time window {str(self.sync_start_times)}")
+                self.general_logger.warning(f"Time to Start Sync - as in a time window {str(self.sync_start_times)}")
                 self.master_queue()
-                logger.warning("Big sleep for 1 Hour - Sync Complete")
+                self.general_logger.warning("Big sleep for 1 Hour - Sync Complete")
                 time.sleep(3600)
-                logger.warning(f"Checking every 10 minutes as not in sync time window {str(self.sync_start_times)}")
+                self.general_logger.warning(f"Checking every 10 minutes as not in sync time window {str(self.sync_start_times)}")
             else:
                 time.sleep(600)
 
@@ -136,13 +148,13 @@ class DataHandler:
                 raise Exception("No Channel Title")
 
         except Exception as e:
-            logger.error(f"Error using Channel Link: {str(e)}")
-            logger.error("Trying to search for the Channel manually...")
+            self.general_logger.error(f"Error using Channel Link: {str(e)}")
+            self.general_logger.error("Trying to search for the Channel manually...")
             ret = ydl.extract_info(f"ytsearch:{channel_name} channel", download=False)
             channel_id = ret["entries"][0]["channel_id"]
             channel_title = ret["entries"][0]["uploader"]
 
-        logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
+        self.general_logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
         uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
         playlist = ydl.extract_info(uploads_playlist_url, download=False)
 
@@ -157,7 +169,7 @@ class DataHandler:
                 duration = video["duration"]
                 actual_channel_name = video["channel"]
 
-                logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds")
+                self.general_logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds")
 
                 actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
                 video_id = actual_video_info["id"]
@@ -170,31 +182,31 @@ class DataHandler:
                 age_in_hours = (current_time - video_timestamp) / 3600
 
                 if video_date < last_date:
-                    logger.warning("No more videos in date range")
+                    self.general_logger.warning("No more videos in date range")
                     break
 
                 if duration <= 60:
-                    logger.warning(f"Ignoring Short Video: {video_title} - {actual_video_link}")
+                    self.general_logger.warning(f"Ignoring Short Video: {video_title} - {actual_video_link}")
                     continue
 
                 if age_in_hours < self.defer_hours:
-                    logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
+                    self.general_logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
                     continue
 
                 if channel.get("Filter_Title_Text"):
                     if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
-                        logger.warning(f'Skipped Video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
+                        self.general_logger.warning(f'Skipped Video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
                     if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
-                        logger.warning(f'Skipped Video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
+                        self.general_logger.warning(f'Skipped Video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
                 video_list.append({"title": video_title, "upload_date": video_date, "link": actual_video_link, "id": video_id, "channel_name": actual_channel_name})
-                logger.warning(f"Added Video to Download List: {video_title} -> {actual_video_link}")
+                self.general_logger.warning(f"Added Video to Download List: {video_title} -> {actual_video_link}")
 
             except Exception as e:
-                logger.error(f"Error extracting details of {video_title}: {str(e)}")
+                self.general_logger.error(f"Error extracting details of {video_title}: {str(e)}")
 
         return video_list
 
@@ -208,18 +220,18 @@ class DataHandler:
 
             for video in video_list:
                 if not self.is_video_in_folder(video, channel_folder_path):
-                    logger.warning(f'Starting Download: {video["title"]}')
+                    self.general_logger.warning(f'Starting Download: {video["title"]}')
                     self.download_video(video, channel_folder_path)
 
         except Exception as e:
-            logger.error(f"Error checking file download: {str(e)}")
+            self.general_logger.error(f"Error checking file download: {str(e)}")
 
     def is_video_in_folder(self, video, channel_folder_path):
         try:
             raw_directory_list = os.listdir(channel_folder_path)
 
             if f'{self.string_cleaner(video["title"])}.mp4' in raw_directory_list:
-                logger.warning(f'Video File Already in folder: {video["title"]}')
+                self.general_logger.warning(f'Video File Already in folder: {video["title"]}')
                 return True
 
             for filename in raw_directory_list:
@@ -230,15 +242,15 @@ class DataHandler:
                             mp4_file = MP4(file_path)
                             embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
                             if embedded_video_id == video["id"]:
-                                logger.warning(f'Video ID for: {video["title"]} found embedded in: {file_path}')
+                                self.general_logger.warning(f'Video ID for: {video["title"]} found embedded in: {file_path}')
                                 return True
 
                         except Exception as e:
-                            logger.error(f"No Video ID present or cannot read it from metadata: {e}")
+                            self.general_logger.error(f"No Video ID present or cannot read it from metadata: {e}")
             return False
 
         except Exception as e:
-            logger.error(f"Error checking if video is in folder: {str(e)}")
+            self.general_logger.error(f"Error checking if video is in folder: {str(e)}")
             return False
 
     def cleanup_old_files(self, channel):
@@ -261,28 +273,28 @@ class DataHandler:
                         mp4_created_timestamp = mp4_file.get("\xa9day", [None])[0]
                         if mp4_created_timestamp:
                             file_mtime = datetime.datetime.strptime(mp4_created_timestamp, "%Y-%m-%d %H:%M:%S")
-                            logger.warning(f"Extracted datetime {file_mtime} from metadata of {filename}")
+                            self.general_logger.warning(f"Extracted datetime {file_mtime} from metadata of {filename}")
                         else:
                             raise Exception("No timestamp found")
 
                     except Exception as e:
-                        logger.error(f"Error extracting datetime from metadata: {e}")
+                        self.general_logger.error(f"Error extracting datetime from metadata: {e}")
                         file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-                        logger.error(f"Using Modified timestamp instead.... {file_mtime} for {filename}")
+                        self.general_logger.error(f"Using Modified timestamp instead.... {file_mtime} for {filename}")
 
                     age = current_datetime - file_mtime
 
                     if age > datetime.timedelta(days=days_to_keep):
                         os.remove(file_path)
-                        logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
+                        self.general_logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
                         if self.media_server_scan_req_flag == False:
                             self.media_server_scan_req_flag = True
                     else:
                         channel["Video_Count"] += 1
-                        logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
+                        self.general_logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
 
         except Exception as e:
-            logger.error(f"Error Cleaning Old Files: {str(e)}")
+            self.general_logger.error(f"Error Cleaning Old Files: {str(e)}")
 
     def download_video(self, video, channel_folder_path):
         if self.media_server_scan_req_flag == False:
@@ -310,23 +322,23 @@ class DataHandler:
                 ydl_opts["cookiefile"] = self.cookies_path
 
             yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
-            logger.warning(f"yt_dlp -> Starting to download: {link}")
+            self.general_logger.warning(f"yt_dlp -> Starting to download: {link}")
 
             yt_downloader.download([link])
-            logger.warning(f"yt_dlp -> Finished: {link}")
+            self.general_logger.warning(f"yt_dlp -> Finished: {link}")
 
             self.add_extra_metadata(full_file_path, video)
 
         except Exception as e:
-            logger.error(f"Error downloading video: {link}. Error message: {e}")
+            self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
 
     def progress_callback(self, d):
         if d["status"] == "finished":
-            logger.warning("Download complete")
-            logger.warning("Processing File...")
+            self.general_logger.warning("Download complete")
+            self.general_logger.warning("Processing File...")
 
         elif d["status"] == "downloading":
-            logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
+            self.general_logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
 
     def add_extra_metadata(self, file_path, video):
         try:
@@ -339,15 +351,15 @@ class DataHandler:
             mp4_file["\xa9gen"] = video["channel_name"]
             mp4_file["\xa9pub"] = video["channel_name"]
             mp4_file.save()
-            logger.warning(f'Added timestamp: {current_datetime} and Video ID: {video["id"]} to metadata of: {file_path}')
+            self.general_logger.warning(f'Added timestamp: {current_datetime} and Video ID: {video["id"]} to metadata of: {file_path}')
 
         except Exception as e:
-            logger.error(f"Error adding metadata to {file_path}: {e}")
+            self.general_logger.error(f"Error adding metadata to {file_path}: {e}")
 
     def master_queue(self):
         try:
             self.media_server_scan_req_flag = False
-            logger.warning("Sync Task started...")
+            self.general_logger.warning("Sync Task started...")
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.thread_limit) as executor:
                 futures = [executor.submit(self.process_channel, channel) for channel in self.req_channel_list]
@@ -356,7 +368,7 @@ class DataHandler:
             if self.req_channel_list:
                 self.save_channel_list_to_file()
             else:
-                logger.warning("Channel List Empty")
+                self.general_logger.warning("Channel List Empty")
 
             data = {"Channel_List": self.req_channel_list}
             socketio.emit("Update", data)
@@ -364,33 +376,33 @@ class DataHandler:
             if self.media_server_scan_req_flag == True and self.media_server_tokens:
                 self.sync_media_servers()
             else:
-                logger.warning("Media Server Sync not required")
+                self.general_logger.warning("Media Server Sync not required")
 
         except Exception as e:
-            logger.error(f"Error in Queue: {str(e)}")
-            logger.warning("Sync Finished: Incomplete")
+            self.general_logger.error(f"Error in Queue: {str(e)}")
+            self.general_logger.warning("Sync Finished: Incomplete")
 
         else:
-            logger.warning("Sync Finished: Complete")
+            self.general_logger.warning("Sync Finished: Complete")
 
     def process_channel(self, channel):
         try:
-            logger.warning(f'Getting list of videos for channel: {channel["Name"]} from {channel["Link"]}')
+            self.general_logger.warning(f'Getting list of videos for channel: {channel["Name"]} from {channel["Link"]}')
             video_download_list = self.get_list_of_videos(channel)
 
-            logger.warning(f'Downloading Video List for: {channel["Name"]}')
+            self.general_logger.warning(f'Downloading Video List for: {channel["Name"]}')
             self.check_and_download(video_download_list, channel)
-            logger.warning(f'Finished Downloading Videos for channel: {channel["Name"]}')
+            self.general_logger.warning(f'Finished Downloading Videos for channel: {channel["Name"]}')
 
-            logger.warning(f'Clearing Files for: {channel["Name"]}')
+            self.general_logger.warning(f'Clearing Files for: {channel["Name"]}')
             self.cleanup_old_files(channel)
-            logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
+            self.general_logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
-            logger.warning(f'Completed processing for channel: {channel["Name"]}')
+            self.general_logger.warning(f'Completed processing for channel: {channel["Name"]}')
 
         except Exception as e:
-            logger.error(f'Error processing channel {channel["Name"]}: {str(e)}')
+            self.general_logger.error(f'Error processing channel {channel["Name"]}: {str(e)}')
 
     def add_channel(self, channel):
         self.req_channel_list.extend(channel)
@@ -402,26 +414,26 @@ class DataHandler:
             try:
                 token = media_tokens.get("Plex")
                 address = media_servers.get("Plex")
-                logger.warning("Attempting Plex Sync")
+                self.general_logger.warning("Attempting Plex Sync")
                 media_server_server = PlexServer(address, token)
                 library_section = media_server_server.library.section(self.media_server_library_name)
                 library_section.update()
-                logger.warning(f"Plex Library scan for '{self.media_server_library_name}' started.")
+                self.general_logger.warning(f"Plex Library scan for '{self.media_server_library_name}' started.")
             except Exception as e:
-                logger.warning(f"Plex Library scan failed: {str(e)}")
+                self.general_logger.warning(f"Plex Library scan failed: {str(e)}")
         if "Jellyfin" in media_servers and "Jellyfin" in media_tokens:
             try:
                 token = media_tokens.get("Jellyfin")
                 address = media_servers.get("Jellyfin")
-                logger.warning("Attempting Jellyfin Sync")
+                self.general_logger.warning("Attempting Jellyfin Sync")
                 url = f"{address}/Library/Refresh?api_key={token}"
                 response = requests.post(url)
                 if response.status_code == 204:
-                    logger.warning("Jellyfin Library refresh request successful.")
+                    self.general_logger.warning("Jellyfin Library refresh request successful.")
                 else:
-                    logger.warning(f"Jellyfin Error: {response.status_code}, {response.text}")
+                    self.general_logger.warning(f"Jellyfin Error: {response.status_code}, {response.text}")
             except Exception as e:
-                logger.warning(f"Jellyfin Library scan failed: {str(e)}")
+                self.general_logger.warning(f"Jellyfin Library scan failed: {str(e)}")
 
     def string_cleaner(self, input_string):
         if isinstance(input_string, str):
@@ -454,14 +466,48 @@ class DataHandler:
 
         return result
 
+    def update_settings(self, data):
+        self.media_server_addresses = data["media_server_addresses"]
+        self.media_server_tokens = data["media_server_tokens"]
+        self.media_server_library_name = data["media_server_library_name"]
+
+        try:
+            if data["sync_start_times"] == "":
+                raise Exception("No Hours Entered, defaulting to 0 (i.e. 12 am)")
+            raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
+            temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
+            cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
+            self.sync_start_times = cleaned_sync_start_times
+
+        except Exception as e:
+            self.general_logger.error(f"Error Updating settings: {str(e)}")
+            self.sync_start_times = [0]
+
+        finally:
+            self.general_logger.warning(f"Sync Hours: {str(self.sync_start_times)}")
+            self.save_settings_to_file()
+
+    def save_channels(self, data):
+        try:
+            channel_to_be_saved = data["channel"]
+            channel_name = channel_to_be_saved["Name"]
+            for channel in self.req_channel_list:
+                if channel["Name"] == channel_name:
+                    channel.update(channel_to_be_saved)
+                    break
+            else:
+                self.req_channel_list.append(channel_to_be_saved)
+
+        except Exception as e:
+            self.general_logger.error(f"Error Saving Channel: {str(e)}")
+
+        else:
+            self.save_channel_list_to_file()
+
 
 app = Flask(__name__)
 app.secret_key = "secret_key"
 socketio = SocketIO(app)
-
-logging.basicConfig(level=logging.WARNING, format="%(message)s")
-logger = logging.getLogger()
-
 data_handler = DataHandler()
 
 
@@ -489,36 +535,12 @@ def loadSettings():
 
 @socketio.on("save_channel_settings")
 def save_channel_settings(data):
-    channel_to_be_saved = data["channel"]
-    channel_name = channel_to_be_saved["Name"]
-    for channel in data_handler.req_channel_list:
-        if channel["Name"] == channel_name:
-            channel.update(channel_to_be_saved)
-            break
-    else:
-        data_handler.req_channel_list.append(channel_to_be_saved)
-    data_handler.save_channel_list_to_file()
+    data_handler.save_channels(data)
 
 
 @socketio.on("updateSettings")
 def updateSettings(data):
-    data_handler.media_server_addresses = data["media_server_addresses"]
-    data_handler.media_server_tokens = data["media_server_tokens"]
-    data_handler.media_server_library_name = data["media_server_library_name"]
-    try:
-        if data["sync_start_times"] == "":
-            raise Exception("No Time Entered, defaulting to 0 (i.e. 12 am)")
-        raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
-        temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
-        cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
-        data_handler.sync_start_times = cleaned_sync_start_times
-
-    except Exception as e:
-        logger.error(f"Error Updating settings: {str(e)}")
-        data_handler.sync_start_times = [0]
-    finally:
-        logger.warning(f"Sync Times: {str(data_handler.sync_start_times)}")
-    data_handler.save_settings_to_file()
+    data_handler.update_settings(data)
 
 
 @socketio.on("add_channel")
