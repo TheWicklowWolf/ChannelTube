@@ -17,7 +17,13 @@ function change_filter_description(negate_filter_checkbox, filter_text_descripti
         : "Only get videos with this text in the title.";
 }
 
-function open_edit_modal(channel) {
+function open_edit_modal(channel_id) {
+    const channel = channel_list.find(c => c.Id === channel_id);
+
+    if (!channel) {
+        alert("Error, Channel not found");
+        return;
+    }
     const channel_edit_modal_container = document.createElement("div");
     channel_edit_modal_container.appendChild(document.importNode(modal_channel_template, true));
 
@@ -75,7 +81,7 @@ function add_row_to_channel_table(channel) {
 
     const edit_button = row.querySelector(".edit-button");
     edit_button.addEventListener("click", function () {
-        open_edit_modal(channel);
+        open_edit_modal(channel.Id);
     });
 
     const remove_button = row.querySelector(".remove-button");
@@ -115,13 +121,14 @@ function save_channel_changes(channel) {
     };
 
     socket.emit("save_channel_changes", channel_updates);
-
-    const rows = channel_table.querySelectorAll("tr");
-    rows.forEach(row => {
-        if (row.id === String(channel.Id)) {
+    const index = channel_list.findIndex(c => c.Id === channel.Id);
+    if (index > -1) {
+        channel_list[index] = channel_updates;
+        const row = document.getElementById(channel.Id);
+        if (row) {
             row.querySelector(".channel-name").textContent = channel_updates.Name;
         }
-    });
+    }
 
     document.getElementById("save-channel-message").style.display = "block";
     setTimeout(() => {
