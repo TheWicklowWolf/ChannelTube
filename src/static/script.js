@@ -87,14 +87,18 @@ function add_row_to_channel_table(channel) {
 }
 
 function remove_channel(channel_to_be_removed) {
-    socket.emit("remove_channel", channel_to_be_removed);
+    const confirmation = confirm("Are you sure you want to remove this channel?");
 
-    const index = channel_list.findIndex(c => c.Id === channel_to_be_removed.Id);
-    if (index > -1) {
-        channel_list.splice(index, 1);
-        const row = document.getElementById(`${channel_to_be_removed.Id}`);
-        if (row) {
-            row.remove();
+    if (confirmation) {
+        socket.emit("remove_channel", channel_to_be_removed);
+
+        const index = channel_list.findIndex(c => c.Id === channel_to_be_removed.Id);
+        if (index > -1) {
+            channel_list.splice(index, 1);
+            const row = document.getElementById(`${channel_to_be_removed.Id}`);
+            if (row) {
+                row.remove();
+            }
         }
     }
 }
