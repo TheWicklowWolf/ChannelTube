@@ -17,8 +17,10 @@ RUN apk update && apk add --no-cache ffmpeg
 COPY . /channeltube
 WORKDIR /channeltube
 RUN mkdir -p /channeltube/downloads
+RUN mkdir -p /channeltube/audio_downloads
+RUN mkdir -p /channeltube/config
 RUN chown -R $UID:$GID /channeltube
-RUN chmod -R 777 /channeltube/downloads
+RUN chmod -R 777 /channeltube
 
 # Install requirements and run code as general_user
 RUN pip install --no-cache-dir -r requirements.txt
