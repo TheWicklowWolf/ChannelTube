@@ -27,7 +27,7 @@
 <body class="bg-secondary-subtle">
   <div class="container-fluid bg-dark">
     <div class="top-bar d-flex justify-content-between align-items-center">
-      <img id="logo" src="{{url_for('static',filename='channeltube.png')}}">
+      <img id="logo" src="{{url_for('static',filename='channeltube.png')}}" alt="logo">
       <h1 class="title text-center text-light flex-grow-1">ChannelTube</h1>
       <button class="btn btn-link text-light" id="settings-button" data-bs-toggle="modal"
         data-bs-target="#config-modal">
@@ -36,7 +36,7 @@
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Config Modal -->
   <div class="modal fade" id="config-modal" tabindex="-1" role="dialog" aria-labelledby="modal-label"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -50,22 +50,22 @@
             Settings saved successfully.
           </div>
           <div class="form-group-modal ">
-            <label for="sync_start_times">Sync Schedule:</label>
-            <input type="text" class="form-control" id="sync_start_times"
+            <label for="sync-start-times">Sync Schedule:</label>
+            <input type="text" class="form-control" id="sync-start-times"
               placeholder="Enter Hour in 24hr format (use , for multiple hours)">
           </div>
           <div class="form-group-modal my-4">
-            <label for="media_server_addresses">Media Server Addresses:</label>
-            <input type="text" class="form-control" id="media_server_addresses"
+            <label for="media-server-addresses">Media Server Addresses:</label>
+            <input type="text" class="form-control" id="media-server-addresses"
               placeholder="Enter Media Server Address">
           </div>
           <div class="form-group-modal my-4">
-            <label for="media_server_tokens">Media Server Tokens:</label>
-            <input type="text" class="form-control" id="media_server_tokens" placeholder="Enter Media Server Tokens">
+            <label for="media-server-tokens">Media Server Tokens:</label>
+            <input type="text" class="form-control" id="media-server-tokens" placeholder="Enter Media Server Tokens">
           </div>
           <div class="form-group-modal">
-            <label for="media_server_library_name">Media Server Library Name:</label>
-            <input type="text" class="form-control" id="media_server_library_name"
+            <label for="media-server-library-name">Media Server Library Name:</label>
+            <input type="text" class="form-control" id="media-server-library-name"
               placeholder="Enter Media Server Library Name">
           </div>
         </div>
@@ -82,27 +82,108 @@
     </div>
   </div>
 
-  <div class="container px-1 mt-4">
+  <div id="channel-table" class="container px-1 mt-4">
     <table class="table">
       <thead class="sticky-top top-0">
         <tr>
           <th>Channel Name</th>
           <th>Last Synced</th>
-          <th class="col text-center">Videos</th>
+          <th class="col text-center">Items</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="channel-list">
-        <!-- Rows will be added here dynamically -->
       </tbody>
     </table>
-
   </div>
   <div class="container mt-2">
     <button id="add-channel" class="btn btn-primary">Add Channel</button>
-    <button id="save-channel-list" class="btn btn-secondary">Save Channel List</button>
-    <span id="save-channel-list-msg" class="text-success font-weight-bold"></span>
   </div>
+
+  <template id="channel-row-template">
+    <tr>
+      <td class="channel-name"></td>
+      <td class="channel-last-synced"></td>
+      <td class="text-center channel-item-count"></td>
+      <td>
+        <button class="btn btn-sm btn-primary custom-button-width edit-button">Edit</button>
+        <button class="btn btn-sm btn-danger custom-button-width remove-button">Remove</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="modal-channel-template">
+    <div class="modal fade" id="modal-channel-config" tabindex="-1" aria-labelledby="edit-channel-modal-label"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="edit-channel-modal-label">Edit Channel</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body py-1">
+            <div id="save-channel-message" style="display: none;" class="alert alert-success mt-3">
+              Settings saved successfully.
+            </div>
+            <form>
+              <div class="form-group">
+                <label for="channel-name">Channel Name:</label>
+                <input type="text" class="form-control" id="channel-name" value="">
+              </div>
+              <div class="form-group my-2">
+                <label for="channel-link">Channel Link:</label>
+                <input type="text" class="form-control" id="channel-link" value="">
+              </div>
+              <div class="form-group my-2">
+                <label for="download-days">Days to Sync:</label>
+                <input type="number" class="form-control" min="0" id="download-days" value="">
+              </div>
+              <div class="form-group my-2">
+                <label for="keep-days">Days to Keep:</label>
+                <input type="number" class="form-control" min="0" id="keep-days" value="">
+              </div>
+              <div class="form-group my-2">
+                <label>Media Type:</label>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="media-type-selector" id="audio-option"
+                        value="Audio">
+                      <label class="form-check-label" for="audio-option">Audio Only</label>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="media-type-selector" id="video-option"
+                        value="Video">
+                      <label class="form-check-label" for="video-option">Full Video</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="title-filter-text" class="me-2 mb-0">Title Filter Text:</label>
+                <div class="form-group d-flex align-items-center">
+                  <input type="text" class="form-control me-2" id="title-filter-text" value="">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="negate-filter">
+                    <label class="form-check-label" for="negate-filter">Negate</label>
+                  </div>
+                </div>
+                <p id="filter-text-description" class="m-1 text-secondary">
+                  Only get videos with this text in the title.
+                </p>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="save-channel-changes-button">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
   <script src="{{url_for('static',filename='script.js')}}"></script>
 </body>
 
