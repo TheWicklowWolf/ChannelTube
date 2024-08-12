@@ -2,7 +2,7 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/thewicklowwolf/channeltube.svg)
 
 
-![full_logo](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/c07c2794-d537-407e-9f5b-83098244f6c7)
+![full_logo](https://raw.githubusercontent.com/TheWicklowWolf/ChannelTube/main/src/static/full_logo.png)
 
 
 ChannelTube is a tool for synchronizing and fetching content from YouTube channels using yt-dlp.
@@ -68,14 +68,13 @@ To utilize a cookies file with yt-dlp, follow these steps:
 
 ---
 
-
-![image](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/b9ba0532-f4cf-4ed2-b5ac-8970c9d54848)
+![light](https://raw.githubusercontent.com/TheWicklowWolf/ChannelTube/main/src/static/light.png)
 
 
 ---
 
 
-![ChannelTubeDark](https://github.com/TheWicklowWolf/ChannelTube/assets/111055425/1e09a757-55cd-42bd-b3cb-aadd7152bd2e)
+![dark](https://raw.githubusercontent.com/TheWicklowWolf/ChannelTube/main/src/static/dark.png)
 
 ---
 
