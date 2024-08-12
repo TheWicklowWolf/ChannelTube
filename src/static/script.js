@@ -87,8 +87,7 @@ function add_row_to_channel_table(channel) {
 }
 
 function remove_channel(channel_to_be_removed) {
-    const confirmation = confirm("Are you sure you want to remove this channel?");
-
+    const confirmation = confirm(`Are you sure you want to remove the channel "${channel_to_be_removed.Name}"?`);
     if (confirmation) {
         socket.emit("remove_channel", channel_to_be_removed);
 
