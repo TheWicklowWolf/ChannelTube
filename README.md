@@ -17,7 +17,8 @@ services:
     container_name: channeltube
     volumes:
       - /path/to/config:/channeltube/config
-      - /data/media/channeltube:/channeltube/downloads
+      - /data/media/video:/channeltube/downloads
+      - /data/media/audio:/channeltube/audio_downloads
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 5000:5000
