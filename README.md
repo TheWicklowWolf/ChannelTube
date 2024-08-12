@@ -41,7 +41,7 @@ Certain values can be set via environment variables:
 
 ## Sync Schedule
 
-Use a comma-separated list of hours to search for new videos (e.g. `2, 20` will initiate a video search at 2 AM and 8 PM).
+Use a comma-separated list of hours to search for new items (e.g. `2, 20` will initiate a search at 2 AM and 8 PM).
 > Note: There is a deadband of up to 10 minutes from the scheduled start time.
 
 ## Media Server Integration (optional)
