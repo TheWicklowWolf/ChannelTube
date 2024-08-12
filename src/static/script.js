@@ -171,7 +171,6 @@ socket.on("updated_settings", function (settings) {
 });
 
 
-
 const themeSwitch = document.getElementById('themeSwitch');
 const savedTheme = localStorage.getItem('theme');
 const savedSwitchPosition = localStorage.getItem('switchPosition');
