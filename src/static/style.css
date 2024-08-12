@@ -3,18 +3,18 @@ body {
     padding: 0;
 }
 
-#logo{
+#logo {
     max-width: 50px;
     max-height: 50px;
 }
 
-.container{
+.container {
     max-height: 77.5vh;
     overflow-y: auto;
 }
 
-.custom-button-width{
-    width: 60px !important;
+.custom-button-width {
+    width: 75px !important;
 }
 
 ::-webkit-scrollbar {
@@ -40,19 +40,24 @@ body {
 }
 
 @media screen and (max-width: 600px) {
-    .container{
+    .container {
         max-height: 75vh;
     }
-    .custom-button-width{
-        width: 55px !important;
+
+    .custom-button-width {
+        width: 65px !important;
     }
-    .table{
-        text-align: center; 
-    }    
-    th, td {
-      vertical-align: middle; 
-    }   
-    h1{
-        margin-bottom: 0.1rem!important;
+
+    .table {
+        text-align: center;
+    }
+
+    th,
+    td {
+        vertical-align: middle;
+    }
+
+    h1 {
+        margin-bottom: 0.1rem !important;
     }
 }
