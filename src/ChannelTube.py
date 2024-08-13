@@ -37,12 +37,9 @@ class DataHandler:
         self.defer_hours = float(os.environ.get("defer_hours", "0"))
         self.thread_limit = int(os.environ.get("thread_limit", "1"))
 
-        if not os.path.exists(self.config_folder):
-            os.makedirs(self.config_folder)
-        if not os.path.exists(self.download_folder):
-            os.makedirs(self.download_folder)
-        if not os.path.exists(self.audio_download_folder):
-            os.makedirs(self.audio_download_folder)
+        os.makedirs(self.config_folder, exist_ok=True)
+        os.makedirs(self.download_folder, exist_ok=True)
+        os.makedirs(self.audio_download_folder, exist_ok=True)
 
         self.sync_start_times = [0]
         self.settings_config_file = os.path.join(self.config_folder, "settings_config.json")
@@ -144,19 +141,18 @@ class DataHandler:
             else:
                 time.sleep(600)
 
-    def get_list_of_videos(self, channel):
-        days_to_retrieve = channel["DL_Days"]
-
+    def get_list_of_videos_from_youtube(self, channel, current_channel_files):
         ydl_opts = {
             "quiet": True,
             "extract_flat": True,
         }
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
+        days_to_retrieve = channel["DL_Days"]
         channel_link = channel["Link"]
         channel_info = ydl.extract_info(channel_link, download=False)
-        channel_id = channel_info["channel_id"]
-        channel_title = channel_info["title"]
+        channel_id = channel_info.get("channel_id")
+        channel_title = channel_info.get("title")
 
         if not channel_id:
             raise Exception("No Channel ID")
@@ -170,33 +166,38 @@ class DataHandler:
         today = datetime.datetime.now()
         last_date = today - datetime.timedelta(days=days_to_retrieve)
 
-        video_list = []
+        video_to_download_list = []
         for video in playlist["entries"]:
             try:
                 video_title = video["title"]
-                video_link_in_playlist = video["url"]
+                video_link = video["url"]
                 duration = video["duration"]
                 actual_channel_name = video["channel"]
+                youtube_video_id = video["id"]
 
-                self.general_logger.warning(f"Processing: {video_title} -> Duration: {duration} seconds")
+                if duration <= 60:
+                    self.general_logger.warning(f"Ignoring short video: {video_title} - {video_link}")
+                    continue
 
-                actual_video_info = ydl.extract_info(video_link_in_playlist, download=False)
-                video_id = actual_video_info["id"]
-                actual_video_link = actual_video_info["webpage_url"]
-                video_date_raw = actual_video_info["upload_date"]
-                video_date = datetime.datetime.strptime(video_date_raw, "%Y%m%d")
-                video_timestamp = actual_video_info["timestamp"]
+                if youtube_video_id in current_channel_files["id_list"] or video_title in current_channel_files["filename_list"]:
+                    self.general_logger.warning(f"File for video: {video_title} already in folder.")
+                    continue
+
+                self.general_logger.warning(f"Extracting info for: {video_title} -> Duration: {duration} seconds")
+
+                video_extracted_info = ydl.extract_info(video_link, download=False)
+
+                video_upload_date_raw = video_extracted_info["upload_date"]
+                video_upload_date = datetime.datetime.strptime(video_upload_date_raw, "%Y%m%d")
+                video_timestamp = video_extracted_info["timestamp"]
 
                 current_time = time.time()
                 age_in_hours = (current_time - video_timestamp) / 3600
 
-                if video_date < last_date:
+                if video_upload_date < last_date:
+                    self.general_logger.warning(f"Ignoring video: {video_title} as it is older than the cut-off {last_date}.")
                     self.general_logger.warning("No more videos in date range")
                     break
-
-                if duration <= 60:
-                    self.general_logger.warning(f"Ignoring Short Video: {video_title} - {actual_video_link}")
-                    continue
 
                 if age_in_hours < self.defer_hours:
                     self.general_logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
@@ -204,186 +205,161 @@ class DataHandler:
 
                 if channel.get("Filter_Title_Text"):
                     if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
-                        self.general_logger.warning(f'Skipped Video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
+                        self.general_logger.warning(f'Skipped video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
                     if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
-                        self.general_logger.warning(f'Skipped Video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
+                        self.general_logger.warning(f'Skipped video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
-                video_list.append({"title": video_title, "upload_date": video_date, "link": actual_video_link, "id": video_id, "channel_name": actual_channel_name})
-                self.general_logger.warning(f"Added Video to Download List: {video_title} -> {actual_video_link}")
+                video_to_download_list.append({"title": video_title, "upload_date": video_upload_date, "link": video_link, "id": youtube_video_id, "channel_name": actual_channel_name})
+                self.general_logger.warning(f"Added video to download list: {video_title} -> {video_link}")
 
             except Exception as e:
                 self.general_logger.error(f"Error extracting details of {video_title}: {str(e)}")
 
-        return video_list
+        return video_to_download_list
 
-    def check_and_download(self, item_list, channel):
+    def get_list_of_files_from_channel_folder(self, channel_folder_path):
         try:
-            channel_folder = channel["Name"]
-
-            if channel["Media_Type"] == "Audio":
-                channel_folder_path = os.path.join(self.audio_download_folder, channel_folder)
-            else:
-                channel_folder_path = os.path.join(self.download_folder, channel_folder)
-
-            if not os.path.exists(channel_folder_path):
-                os.makedirs(channel_folder_path)
-
-            for item in item_list:
-                if not self.is_file_in_folder(item, channel_folder_path, channel):
-                    self.general_logger.warning(f'Starting Download: {item["title"]}')
-                    self.download_item(item, channel_folder_path, channel)
-
-        except Exception as e:
-            self.general_logger.error(f"Error checking file download: {str(e)}")
-
-    def is_file_in_folder(self, video, channel_folder_path, channel):
-        try:
+            folder_info = {"id_list": [], "filename_list": []}
             raw_directory_list = os.listdir(channel_folder_path)
-            selected_media_type = channel["Media_Type"]
-            search_text = f'{self.string_cleaner(video["title"])}.mp4' if selected_media_type == "Video" else f'{self.string_cleaner(video["title"])}.m4a'
-            if search_text in raw_directory_list:
-                self.general_logger.warning(f'Video File Already in folder: {video["title"]}')
-                return True
-
             for filename in raw_directory_list:
                 file_path = os.path.join(channel_folder_path, filename)
                 if not os.path.isfile(file_path):
                     continue
 
-                file_ext = filename.lower().split(".")[-1]
-                if (file_ext == "mp4" and selected_media_type == "Video") or (file_ext == "m4a" and selected_media_type == "Audio"):
-                    try:
+                try:
+                    file_base_name, file_ext = os.path.splitext(filename)
+                    if file_ext.lower() in [".mp4", ".m4a"]:
+                        folder_info["filename_list"].append(file_base_name)
                         mp4_file = MP4(file_path)
                         embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
-                        if embedded_video_id == video["id"]:
-                            self.general_logger.warning(f'Video ID for: {video["title"]} found embedded in: {file_path}')
-                            return True
+                        folder_info["id_list"].append(embedded_video_id)
 
-                    except Exception as e:
-                        self.general_logger.error(f"No Video ID present or cannot read it from metadata: {e}")
-            return False
+                except Exception as e:
+                    self.general_logger.error(f"No video ID present or cannot read it from metadata of {filename}: {e}")
 
         except Exception as e:
-            self.general_logger.error(f"Error checking if video is in folder: {str(e)}")
-            return False
+            self.general_logger.error(f"Error getting list of files for channel folder: {e}")
 
-    def cleanup_old_files(self, channel):
-        channel_folder = channel["Name"]
+        finally:
+            self.general_logger.warning(f'Found {len(folder_info["filename_list"])} files and {len(folder_info["id_list"])} IDs in {channel_folder_path}.')
+            return folder_info
+
+    def cleanup_old_files(self, channel_folder_path, channel):
         days_to_keep = channel["Keep_Days"]
         selected_media_type = channel["Media_Type"]
 
-        if selected_media_type == "Audio":
-            channel_folder_path = os.path.join(self.audio_download_folder, channel_folder)
-        elif selected_media_type == "Video":
-            channel_folder_path = os.path.join(self.download_folder, channel_folder)
-        else:
-            self.general_logger.error(f"Unsupported media type: {selected_media_type}")
-            return
-
         raw_directory_list = os.listdir(channel_folder_path)
+
         current_datetime = datetime.datetime.now()
         channel["Item_Count"] = 0
 
-        try:
-            for filename in raw_directory_list:
+        for filename in raw_directory_list:
+            try:
                 file_path = os.path.join(channel_folder_path, filename)
                 if not os.path.isfile(file_path):
                     continue
+                file_base_name, file_ext = os.path.splitext(filename.lower())
+                video_file_check = file_ext == ".mp4" and selected_media_type == "Video"
+                audio_file_check = file_ext == ".m4a" and selected_media_type == "Audio"
+                if not (video_file_check or audio_file_check):
+                    continue
 
-                file_ext = filename.lower().split(".")[-1]
-                if (file_ext == "mp4" and selected_media_type == "Video") or (file_ext == "m4a" and selected_media_type == "Audio"):
-                    try:
-                        m4_file = MP4(file_path)
-                        m4_file_created_timestamp = m4_file.get("\xa9day", [None])[0]
-                        if m4_file_created_timestamp:
-                            file_mtime = datetime.datetime.strptime(m4_file_created_timestamp, "%Y-%m-%d %H:%M:%S")
-                            self.general_logger.warning(f"Extracted datetime {file_mtime} from metadata of {filename}")
-                        else:
-                            raise Exception("No timestamp found")
+                file_mtime = self.get_file_modification_time(file_path, filename)
+                age = current_datetime - file_mtime
 
-                    except Exception as e:
-                        self.general_logger.error(f"Error extracting datetime from metadata: {e}")
-                        file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-                        self.general_logger.error(f"Using Modified timestamp instead.... {file_mtime} for {filename}")
+                if age > datetime.timedelta(days=days_to_keep):
+                    os.remove(file_path)
+                    self.general_logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
+                    self.media_server_scan_req_flag = True
+                else:
+                    channel["Item_Count"] += 1
+                    self.general_logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
 
-                    age = current_datetime - file_mtime
+            except Exception as e:
+                self.general_logger.error(f"Error Cleaning Old Files: {filename} {str(e)}")
 
-                    if age > datetime.timedelta(days=days_to_keep):
-                        os.remove(file_path)
-                        self.general_logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
-                        if self.media_server_scan_req_flag == False:
-                            self.media_server_scan_req_flag = True
-                    else:
-                        channel["Item_Count"] += 1
-                        self.general_logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
+    def get_file_modification_time(self, file_path, filename):
+        try:
+            mpeg4_file = MP4(file_path)
+            mpeg4_file_created_timestamp = mpeg4_file.get("\xa9day", [None])[0]
+            if mpeg4_file_created_timestamp:
+                file_mtime = datetime.datetime.strptime(mpeg4_file_created_timestamp, "%Y-%m-%d %H:%M:%S")
+                self.general_logger.debug(f"Extracted datetime {file_mtime} from metadata of {filename}")
+                return file_mtime
+            else:
+                raise Exception("No timestamp found")
 
         except Exception as e:
-            self.general_logger.error(f"Error Cleaning Old Files: {str(e)}")
+            self.general_logger.warning(f"Error extracting datetime from metadata for {filename}: {e}")
+            file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+            self.general_logger.debug(f"Using filesystem modified timestamp {file_mtime} for {filename}")
+            return file_mtime
 
-    def download_item(self, item, channel_folder_path, channel):
-        if self.media_server_scan_req_flag == False:
-            self.media_server_scan_req_flag = True
-        try:
-            link = item["link"]
-            title = self.string_cleaner(item["title"])
-            selected_media_type = channel["Media_Type"]
-            post_processors = [
-                {"key": "SponsorBlock", "categories": ["sponsor"]},
-                {"key": "ModifyChapters", "remove_sponsor_segments": ["sponsor"]},
-            ]
+    def download_items(self, item_list, channel_folder_path, channel):
+        self.media_server_scan_req_flag = True
+        for item in item_list:
+            self.general_logger.warning(f'Starting download: {item["title"]}')
+            try:
+                link = item["link"]
+                title = self.string_cleaner(item["title"])
+                selected_media_type = channel["Media_Type"]
+                post_processors = [
+                    {"key": "SponsorBlock", "categories": ["sponsor"]},
+                    {"key": "ModifyChapters", "remove_sponsor_segments": ["sponsor"]},
+                ]
 
-            if selected_media_type == "Video":
-                selected_ext = "mp4"
-                selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio/best"
-                merge_output_format = selected_ext
-            else:
-                selected_ext = "m4a"
-                selected_format = f"bestaudio[ext={selected_ext}]/{self.audio_format_id}/bestaudio"
-                merge_output_format = None
-                post_processors.append(
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": selected_ext,
-                        "preferredquality": 0,
-                    }
+                if selected_media_type == "Video":
+                    selected_ext = "mp4"
+                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio/best"
+                    merge_output_format = selected_ext
+                else:
+                    selected_ext = "m4a"
+                    selected_format = f"bestaudio[ext={selected_ext}]/{self.audio_format_id}/bestaudio"
+                    merge_output_format = None
+                    post_processors.append(
+                        {
+                            "key": "FFmpegExtractAudio",
+                            "preferredcodec": selected_ext,
+                            "preferredquality": 0,
+                        }
+                    )
+
+                post_processors.extend(
+                    [
+                        {"key": "EmbedThumbnail"},
+                        {"key": "FFmpegMetadata"},
+                    ]
                 )
 
-            post_processors.extend(
-                [
-                    {"key": "EmbedThumbnail"},
-                    {"key": "FFmpegMetadata"},
-                ]
-            )
+                folder_and_filename = os.path.join(channel_folder_path, title)
+                ydl_opts = {
+                    "ffmpeg_location": "/usr/bin/ffmpeg",
+                    "format": selected_format,
+                    "outtmpl": f"{folder_and_filename}.%(ext)s",
+                    "quiet": True,
+                    "writethumbnail": True,
+                    "progress_hooks": [self.progress_callback],
+                    "postprocessors": post_processors,
+                    "no_mtime": True,
+                }
+                if merge_output_format:
+                    ydl_opts["merge_output_format"] = merge_output_format
+                if self.cookies_path:
+                    ydl_opts["cookiefile"] = self.cookies_path
 
-            folder_and_filename = os.path.join(channel_folder_path, title)
-            ydl_opts = {
-                "ffmpeg_location": "/usr/bin/ffmpeg",
-                "format": selected_format,
-                "outtmpl": f"{folder_and_filename}.%(ext)s",
-                "quiet": True,
-                "writethumbnail": True,
-                "progress_hooks": [self.progress_callback],
-                "postprocessors": post_processors,
-                "no_mtime": True,
-            }
-            if merge_output_format:
-                ydl_opts["merge_output_format"] = merge_output_format
-            if self.cookies_path:
-                ydl_opts["cookiefile"] = self.cookies_path
+                yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
+                self.general_logger.warning(f"yt_dlp -> Starting to download: {link}")
 
-            yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
-            self.general_logger.warning(f"yt_dlp -> Starting to download: {link}")
+                yt_downloader.download([link])
+                self.general_logger.warning(f"yt_dlp -> Finished: {link}")
 
-            yt_downloader.download([link])
-            self.general_logger.warning(f"yt_dlp -> Finished: {link}")
+                self.add_extra_metadata(f"{folder_and_filename}.{selected_ext}", item)
 
-            self.add_extra_metadata(f"{folder_and_filename}.{selected_ext}", item)
-
-        except Exception as e:
-            self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
+            except Exception as e:
+                self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
 
     def progress_callback(self, d):
         if d["status"] == "finished":
@@ -404,7 +380,7 @@ class DataHandler:
             m4_file["\xa9gen"] = item["channel_name"]
             m4_file["\xa9pub"] = item["channel_name"]
             m4_file.save()
-            self.general_logger.warning(f'Added timestamp: {current_datetime} and Video ID: {item["id"]} to metadata of: {file_path}')
+            self.general_logger.warning(f'Added timestamp: {current_datetime} and video ID: {item["id"]} to metadata of: {file_path}')
 
         except Exception as e:
             self.general_logger.error(f"Error adding metadata to {file_path}: {e}")
@@ -421,7 +397,7 @@ class DataHandler:
             if self.req_channel_list:
                 self.save_channel_list_to_file()
             else:
-                self.general_logger.warning("Channel List Empty")
+                self.general_logger.warning("Channel list empty")
 
             data = {"Channel_List": self.req_channel_list}
             socketio.emit("update_channel_list", data)
@@ -440,15 +416,24 @@ class DataHandler:
 
     def process_channel(self, channel):
         try:
-            self.general_logger.warning(f'Getting list of videos for channel: {channel["Name"]} from {channel["Link"]}')
-            item_download_list = self.get_list_of_videos(channel)
+            channel_folder_path = os.path.join(self.audio_download_folder, channel["Name"]) if channel["Media_Type"] == "Audio" else os.path.join(self.download_folder, channel["Name"])
+            os.makedirs(channel_folder_path, exist_ok=True)
 
-            self.general_logger.warning(f'Downloading Video List for: {channel["Name"]}')
-            self.check_and_download(item_download_list, channel)
-            self.general_logger.warning(f'Finished Downloading Videos for channel: {channel["Name"]}')
+            self.general_logger.warning(f'Getting current list of files for channel: {channel["Name"]} from {channel_folder_path}')
+            current_channel_files = self.get_list_of_files_from_channel_folder(channel_folder_path)
+
+            self.general_logger.warning(f'Getting list of videos for channel: {channel["Name"]} from {channel["Link"]}')
+            item_download_list = self.get_list_of_videos_from_youtube(channel, current_channel_files)
+
+            if item_download_list:
+                self.general_logger.warning(f'Downloading video list for: {channel["Name"]}')
+                self.download_items(item_download_list, channel_folder_path, channel)
+                self.general_logger.warning(f'Finished downloading videos for channel: {channel["Name"]}')
+            else:
+                self.general_logger.warning(f'No videos to download for: {channel["Name"]}')
 
             self.general_logger.warning(f'Clearing Files for: {channel["Name"]}')
-            self.cleanup_old_files(channel)
+            self.cleanup_old_files(channel_folder_path, channel)
             self.general_logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
