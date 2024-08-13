@@ -183,15 +183,6 @@ class DataHandler:
                     self.general_logger.warning(f"File for video: {video_title} already in folder.")
                     continue
 
-                if channel.get("Filter_Title_Text"):
-                    if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
-                        self.general_logger.warning(f'Skipped video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
-                        continue
-
-                    if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
-                        self.general_logger.warning(f'Skipped video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
-                        continue
-
                 self.general_logger.warning(f"Extracting info for: {video_title} -> Duration: {duration} seconds")
                 video_extracted_info = ydl.extract_info(video_link, download=False)
 
@@ -210,6 +201,15 @@ class DataHandler:
                 if age_in_hours < self.defer_hours:
                     self.general_logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
                     continue
+
+                if channel.get("Filter_Title_Text"):
+                    if channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() in video_title.lower():
+                        self.general_logger.warning(f'Skipped video: {video_title} as it contains the filter text: {channel["Filter_Title_Text"]}')
+                        continue
+
+                    if not channel["Negate_Filter"] and channel["Filter_Title_Text"].lower() not in video_title.lower():
+                        self.general_logger.warning(f'Skipped video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
+                        continue
 
                 video_to_download_list.append({"title": video_title, "upload_date": video_upload_date, "link": video_link, "id": youtube_video_id, "channel_name": actual_channel_name})
                 self.general_logger.warning(f"Added video to download list: {video_title} -> {video_link}")
