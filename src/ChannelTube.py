@@ -142,7 +142,7 @@ class DataHandler:
 
                 self.general_logger.warning(f"Sync Complete - Sleeping for {int(sleep_seconds)} seconds until {next_hour.time()}")
                 time.sleep(sleep_seconds)
-                self.general_logger.warning(f"Checking every 10 minutes as not in sync hour window {str(self.sync_start_times)}")
+                self.general_logger.warning(f"Checking sync schedule every 10 minutes: {str(self.sync_start_times)}")
             else:
                 time.sleep(600)
 
