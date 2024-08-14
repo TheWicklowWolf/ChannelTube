@@ -340,6 +340,7 @@ class DataHandler:
 
                 folder_and_filename = os.path.join(channel_folder_path, title)
                 ydl_opts = {
+                    "logger": self.general_logger,
                     "ffmpeg_location": "/usr/bin/ffmpeg",
                     "format": selected_format,
                     "outtmpl": f"{folder_and_filename}.%(ext)s",
@@ -371,7 +372,7 @@ class DataHandler:
             self.general_logger.warning("Processing File...")
 
         elif d["status"] == "downloading" and int(time.time()) % 10 == 0:
-            self.general_logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
+            self.general_logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]} with ETA {d["_eta_str"]}')
 
     def add_extra_metadata(self, file_path, item):
         try:
