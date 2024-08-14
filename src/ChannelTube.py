@@ -129,15 +129,20 @@ class DataHandler:
         self.general_logger.warning("Starting periodic checks every 10 minutes to monitor sync start times.")
         self.general_logger.warning(f"Current scheduled hours to start sync (in 24-hour format): {self.sync_start_times}")
         while True:
-            current_time = datetime.datetime.now().time()
-            within_sync_window = any(datetime.time(t, 0, 0) <= current_time <= datetime.time(t, 59, 59) for t in self.sync_start_times)
+            current_time = datetime.datetime.now()
+            within_sync_window = current_time.hour in self.sync_start_times
 
             if within_sync_window:
-                self.general_logger.warning(f"Time to Start Sync - as in a time window {str(self.sync_start_times)}")
+                self.general_logger.warning(f"Time to Start Sync - as current hour: {current_time.hour} in schedule {str(self.sync_start_times)}")
                 self.master_queue()
-                self.general_logger.warning("Big sleep for 1 Hour - Sync Complete")
-                time.sleep(3600)
-                self.general_logger.warning(f"Checking every 10 minutes as not in sync time window {str(self.sync_start_times)}")
+
+                current_time = datetime.datetime.now()
+                next_hour = (current_time + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=1)
+                sleep_seconds = (next_hour - current_time).total_seconds()
+
+                self.general_logger.warning(f"Sync Complete - Sleeping for {int(sleep_seconds)} seconds until {next_hour.time()}")
+                time.sleep(sleep_seconds)
+                self.general_logger.warning(f"Checking every 10 minutes as not in sync hour window {str(self.sync_start_times)}")
             else:
                 time.sleep(600)
 
@@ -286,7 +291,7 @@ class DataHandler:
             mpeg4_file_created_timestamp = mpeg4_file.get("\xa9day", [None])[0]
             if mpeg4_file_created_timestamp:
                 file_mtime = datetime.datetime.strptime(mpeg4_file_created_timestamp, "%Y-%m-%d %H:%M:%S")
-                self.general_logger.debug(f"Extracted datetime {file_mtime} from metadata of {filename}")
+                self.general_logger.warning(f"Extracted datetime {file_mtime} from metadata of {filename}")
                 return file_mtime
             else:
                 raise Exception("No timestamp found")
@@ -294,7 +299,7 @@ class DataHandler:
         except Exception as e:
             self.general_logger.warning(f"Error extracting datetime from metadata for {filename}: {e}")
             file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-            self.general_logger.debug(f"Using filesystem modified timestamp {file_mtime} for {filename}")
+            self.general_logger.warning(f"Using filesystem modified timestamp {file_mtime} for {filename}")
             return file_mtime
 
     def download_items(self, item_list, channel_folder_path, channel):
@@ -365,7 +370,7 @@ class DataHandler:
             self.general_logger.warning("Download complete")
             self.general_logger.warning("Processing File...")
 
-        elif d["status"] == "downloading":
+        elif d["status"] == "downloading" and int(time.time()) % 10 == 0:
             self.general_logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]}')
 
     def add_extra_metadata(self, file_path, item):
@@ -538,7 +543,7 @@ class DataHandler:
             self.sync_start_times = cleaned_sync_start_times
 
         except Exception as e:
-            self.general_logger.error(f"Error Updating settings: {str(e)}")
+            self.general_logger.error(f"Error Updating Settings: {str(e)}")
             self.sync_start_times = [0]
 
         finally:
