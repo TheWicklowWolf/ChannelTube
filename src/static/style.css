@@ -14,7 +14,7 @@ body {
 }
 
 .custom-button-width {
-    width: 75px !important;
+    width: 80px !important;
 }
 
 ::-webkit-scrollbar {
@@ -45,7 +45,8 @@ body {
     }
 
     .custom-button-width {
-        width: 65px !important;
+        width: 70px !important;
+        margin-top: 1px;
     }
 
     .table {
