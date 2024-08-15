@@ -41,7 +41,8 @@ class DataHandler:
         os.makedirs(self.download_folder, exist_ok=True)
         os.makedirs(self.audio_download_folder, exist_ok=True)
 
-        self.sync_start_times = [0]
+        self.sync_start_times = []
+        self.sync_in_progress_flag = False
         self.settings_config_file = os.path.join(self.config_folder, "settings_config.json")
 
         self.req_channel_list = []
@@ -56,8 +57,7 @@ class DataHandler:
         full_cookies_path = os.path.join(self.config_folder, "cookies.txt")
         self.cookies_path = full_cookies_path if os.path.exists(full_cookies_path) else None
 
-        task_thread = threading.Thread(target=self.schedule_checker)
-        task_thread.daemon = True
+        task_thread = threading.Thread(target=self.schedule_checker, daemon=True)
         task_thread.start()
 
     def load_settings_from_file(self):
@@ -155,21 +155,24 @@ class DataHandler:
 
         days_to_retrieve = channel["DL_Days"]
         channel_link = channel["Link"]
-        channel_info = ydl.extract_info(channel_link, download=False)
-        channel_id = channel_info.get("channel_id")
-        channel_title = channel_info.get("title")
+        if "playlist" in channel_link:
+            playlist = ydl.extract_info(channel_link, download=False)
+        else:
+            channel_info = ydl.extract_info(channel_link, download=False)
+            channel_id = channel_info.get("channel_id")
+            channel_title = channel_info.get("title")
 
-        if not channel_id:
-            raise Exception("No Channel ID")
-        if not channel_title:
-            raise Exception("No Channel Title")
+            if not channel_id:
+                raise Exception("No Channel ID")
+            if not channel_title:
+                raise Exception("No Channel Title")
 
-        self.general_logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
-        uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
-        playlist = ydl.extract_info(uploads_playlist_url, download=False)
+            self.general_logger.warning(f"Title: {channel_title} and Channel ID: {channel_id}")
+            uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
+            playlist = ydl.extract_info(uploads_playlist_url, download=False)
 
         today = datetime.datetime.now()
-        last_date = today - datetime.timedelta(days=days_to_retrieve)
+        cutoff_date = today - datetime.timedelta(days=days_to_retrieve)
 
         video_to_download_list = []
         for video in playlist["entries"]:
@@ -198,8 +201,8 @@ class DataHandler:
                 current_time = time.time()
                 age_in_hours = (current_time - video_timestamp) / 3600
 
-                if video_upload_date < last_date:
-                    self.general_logger.warning(f"Ignoring video: {video_title} as it is older than the cut-off {last_date}.")
+                if video_upload_date < cutoff_date:
+                    self.general_logger.warning(f"Ignoring video: {video_title} as it is older than the cut-off {cutoff_date}.")
                     self.general_logger.warning("No more videos in date range")
                     break
 
@@ -392,6 +395,7 @@ class DataHandler:
 
     def master_queue(self):
         try:
+            self.sync_in_progress_flag = True
             self.media_server_scan_req_flag = False
             self.general_logger.warning("Sync Task started...")
 
@@ -418,6 +422,9 @@ class DataHandler:
 
         else:
             self.general_logger.warning("Sync Finished: Complete")
+
+        finally:
+            self.sync_in_progress_flag = False
 
     def process_channel(self, channel):
         try:
@@ -530,22 +537,23 @@ class DataHandler:
 
         return result
 
-    def update_settings(self, data):
+    def save_settings(self, data):
         self.media_server_addresses = data["media_server_addresses"]
         self.media_server_tokens = data["media_server_tokens"]
         self.media_server_library_name = data["media_server_library_name"]
 
         try:
             if data["sync_start_times"] == "":
-                raise Exception("No Hours Entered, defaulting to 0 (i.e. 12 am)")
-            raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
-            temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
-            cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
-            self.sync_start_times = cleaned_sync_start_times
+                self.sync_start_times = []
+            else:
+                raw_sync_start_times = [int(re.sub(r"\D", "", start_time.strip())) for start_time in data["sync_start_times"].split(",")]
+                temp_sync_start_times = [0 if x < 0 or x > 23 else x for x in raw_sync_start_times]
+                cleaned_sync_start_times = sorted(list(set(temp_sync_start_times)))
+                self.sync_start_times = cleaned_sync_start_times
 
         except Exception as e:
             self.general_logger.error(f"Error Updating Settings: {str(e)}")
-            self.sync_start_times = [0]
+            self.sync_start_times = []
 
         finally:
             self.general_logger.warning(f"Sync Hours: {str(self.sync_start_times)}")
@@ -566,6 +574,16 @@ class DataHandler:
 
         else:
             self.save_channel_list_to_file()
+
+    def manual_start(self):
+        if self.sync_in_progress_flag:
+            self.general_logger.warning("Sync already in progress - ignoring manual request.")
+            socketio.emit("settings_save_message", "Sync already in progress.")
+        else:
+            self.general_logger.warning("Manual sync triggered.")
+            task_thread = threading.Thread(target=self.master_queue, daemon=True)
+            task_thread.start()
+            socketio.emit("settings_save_message", "Manual sync initiated.")
 
 
 app = Flask(__name__)
@@ -593,17 +611,19 @@ def get_settings():
         "media_server_tokens": data_handler.media_server_tokens,
         "media_server_library_name": data_handler.media_server_library_name,
     }
-    socketio.emit("updated_settings", data)
+    socketio.emit("current_settings", data)
 
 
 @socketio.on("save_channel_changes")
 def save_channel_changes(channel_to_be_saved):
     data_handler.save_channel_changes(channel_to_be_saved)
+    socketio.emit("channel_save_message", "Channel Settings Saved Successfully.")
 
 
-@socketio.on("update_settings")
-def update_settings(data):
-    data_handler.update_settings(data)
+@socketio.on("save_settings")
+def save_settings(data):
+    data_handler.save_settings(data)
+    socketio.emit("settings_save_message", "Settings Saved Successfully.")
 
 
 @socketio.on("add_channel")
@@ -614,6 +634,11 @@ def add_channel():
 @socketio.on("remove_channel")
 def remove_channel(channel_to_be_removed):
     data_handler.remove_channel(channel_to_be_removed)
+
+
+@socketio.on("manual_start")
+def manual_start():
+    data_handler.manual_start()
 
 
 if __name__ == "__main__":
