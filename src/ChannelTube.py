@@ -132,7 +132,7 @@ class DataHandler:
             current_time = datetime.datetime.now()
             within_sync_window = current_time.hour in self.sync_start_times
 
-            if within_sync_window:
+            if within_sync_window and not self.sync_in_progress_flag:
                 self.general_logger.warning(f"Time to Start Sync - as current hour: {current_time.hour} in schedule {str(self.sync_start_times)}")
                 self.master_queue()
 
@@ -144,6 +144,8 @@ class DataHandler:
                 time.sleep(sleep_seconds)
                 self.general_logger.warning(f"Checking sync schedule every 10 minutes: {str(self.sync_start_times)}")
             else:
+                if self.sync_in_progress_flag:
+                    self.general_logger.warning(f"Scheduled sync is delayed by 10 minutes because another sync is currently in progress.")
                 time.sleep(600)
 
     def get_list_of_videos_from_youtube(self, channel, current_channel_files):
