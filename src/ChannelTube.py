@@ -157,6 +157,10 @@ class DataHandler:
         channel_link = channel["Link"]
         if "playlist" in channel_link:
             playlist = ydl.extract_info(channel_link, download=False)
+            channel_title = playlist.get("title")
+            channel_name = playlist.get("channel")
+            channel_id = playlist.get("channel_id")
+            self.general_logger.warning(f"Playlist Title: {channel_title} from Channel: {channel_name} and Channel ID: {channel_id}")
         else:
             channel_info = ydl.extract_info(channel_link, download=False)
             channel_id = channel_info.get("channel_id")
@@ -167,7 +171,7 @@ class DataHandler:
             if not channel_title:
                 raise Exception("No Channel Title")
 
-            self.general_logger.warning(f"Title: {channel_title} and Channel ID: {channel_id}")
+            self.general_logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
             uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
             playlist = ydl.extract_info(uploads_playlist_url, download=False)
 
