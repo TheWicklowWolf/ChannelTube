@@ -1,6 +1,6 @@
 const config_modal = document.getElementById("config-modal");
+const save_message = document.getElementById("save-message");
 const save_changes_button = document.getElementById("save-changes-button");
-const manual_start_button = document.getElementById("manual-start-button");
 const sync_start_times = document.getElementById("sync-start-times");
 const media_server_addresses = document.getElementById("media-server-addresses");
 const media_server_tokens = document.getElementById("media-server-tokens");
@@ -129,6 +129,11 @@ function save_channel_changes(channel) {
             row.querySelector(".channel-name").textContent = channel_updates.Name;
         }
     }
+
+    document.getElementById("save-channel-message").style.display = "block";
+    setTimeout(() => {
+        document.getElementById("save-channel-message").style.display = "none";
+    }, 1000);
 }
 
 add_channel.addEventListener("click", function () {
@@ -139,39 +144,17 @@ config_modal.addEventListener("show.bs.modal", function (event) {
     socket.emit("get_settings");
 });
 
-manual_start_button.addEventListener("click", () => {
-    socket.emit("manual_start");
-});
-
 save_changes_button.addEventListener("click", () => {
-    socket.emit("save_settings", {
+    socket.emit("update_settings", {
         "sync_start_times": sync_start_times.value,
         "media_server_addresses": media_server_addresses.value,
         "media_server_tokens": media_server_tokens.value,
         "media_server_library_name": media_server_library_name.value,
     });
-});
-
-socket.on("settings_save_message", function (message) {
-    const save_settings_message = document.getElementById("save-settings-message");
-    if (save_settings_message) {
-        save_settings_message.style.display = "block";
-        save_settings_message.textContent = message;
-        setTimeout(() => {
-            save_settings_message.style.display = "none";
-        }, 1000);
-    }
-});
-
-socket.on("channel_save_message", function (message) {
-    const save_channel_message = document.getElementById("save-channel-message");
-    if (save_channel_message) {
-        save_channel_message.style.display = "block";
-        save_channel_message.textContent = message;
-        setTimeout(() => {
-            save_channel_message.style.display = "none";
-        }, 1000);
-    }
+    save_message.style.display = "block";
+    setTimeout(function () {
+        save_message.style.display = "none";
+    }, 1000);
 });
 
 socket.on("update_channel_list", function (data) {
@@ -187,7 +170,7 @@ socket.on("new_channel_added", function (new_channel) {
     add_row_to_channel_table(new_channel);
 });
 
-socket.on("current_settings", function (settings) {
+socket.on("updated_settings", function (settings) {
     sync_start_times.value = settings.sync_start_times.join(", ");
     media_server_addresses.value = settings.media_server_addresses;
     media_server_tokens.value = settings.media_server_tokens;

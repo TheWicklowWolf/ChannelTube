@@ -46,7 +46,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div id="save-settings-message" style="display: none;" class="alert alert-success mt-3">
+          <div id="save-message" style="display: none;" class="alert alert-success mt-3">
+            Settings saved successfully.
           </div>
           <div class="form-group-modal ">
             <label for="sync-start-times">Sync Schedule:</label>
@@ -70,8 +71,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" id="save-changes-button" class="btn btn-primary">Save</button>
-          <button type="button" id="manual-start-button" class="btn btn-info">Manual Start</button>
+          <button type="button" id="save-changes-button" class="btn btn-primary">Save changes</button>
           <i class="fa fa-sun"></i>
           <div class="form-check form-switch">
             <input class="form-check-input rounded" type="checkbox" id="themeSwitch">
@@ -87,9 +87,9 @@
       <thead class="sticky-top top-0">
         <tr>
           <th>Channel Name</th>
-          <th>Last Sync</th>
+          <th>Last Synced</th>
           <th class="col text-center">Items</th>
-          <th class="col text-center">Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="channel-list">
@@ -105,7 +105,7 @@
       <td class="channel-name"></td>
       <td class="channel-last-synced"></td>
       <td class="text-center channel-item-count"></td>
-      <td class="text-center">
+      <td>
         <button class="btn btn-sm btn-primary custom-button-width edit-button">Edit</button>
         <button class="btn btn-sm btn-danger custom-button-width remove-button">Remove</button>
       </td>
@@ -123,6 +123,7 @@
           </div>
           <div class="modal-body py-1">
             <div id="save-channel-message" style="display: none;" class="alert alert-success mt-3">
+              Settings saved successfully.
             </div>
             <form>
               <div class="form-group">
