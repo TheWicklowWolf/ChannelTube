@@ -110,6 +110,8 @@ class DataHandler:
                     "Filter_Title_Text": channel.get("Filter_Title_Text", ""),
                     "Negate_Filter": channel.get("Negate_Filter", False),
                     "Media_Type": channel.get("Media_Type", "Video"),
+                    "Search_Limit": channel.get("Search_Limit", ""),
+                    "Live_Rule": channel.get("Live_Rule", "Ignore"),
                 }
 
                 self.req_channel_list.append(full_channel_data)
@@ -149,15 +151,18 @@ class DataHandler:
                 time.sleep(600)
 
     def get_list_of_videos_from_youtube(self, channel, current_channel_files):
+        days_to_retrieve = channel["DL_Days"]
+        channel_link = channel["Link"]
+        search_limit = channel["Search_Limit"]
+        video_to_download_list = []
+
         ydl_opts = {
             "quiet": True,
             "extract_flat": True,
         }
+        if search_limit:
+            ydl_opts["playlist_items"] = f"1-{search_limit}"
         ydl = yt_dlp.YoutubeDL(ydl_opts)
-
-        days_to_retrieve = channel["DL_Days"]
-        channel_link = channel["Link"]
-        video_to_download_list = []
 
         if "/live" in channel_link.lower():
             timestamp = datetime.datetime.now()
@@ -207,11 +212,16 @@ class DataHandler:
                 youtube_video_id = video["id"]
                 live_status = video["live_status"]
 
-                if live_status == "is_live" or live_status == "post_live":
-                    self.general_logger.warning(f"Ignoring current live video: {video_title} - {video_link}")
+                if channel["Live_Rule"] == "Only":
+                    if not (live_status == "is_live" or live_status == "post_live"):
+                        self.general_logger.warning(f"No live videos for channel: {actual_channel_name}")
+                        break
+
+                if channel["Live_Rule"] == "Ignore" and live_status is not None:
+                    self.general_logger.warning(f"Ignoring live video: {video_title} - {video_link}")
                     continue
 
-                if duration <= 60:
+                if duration <= 60 and live_status is None:
                     self.general_logger.warning(f"Ignoring short video: {video_title} - {video_link}")
                     continue
 
@@ -234,7 +244,7 @@ class DataHandler:
                     self.general_logger.warning("No more videos in date range")
                     break
 
-                if age_in_hours < self.defer_hours:
+                if age_in_hours < self.defer_hours and live_status is None:
                     self.general_logger.warning(f"Video: {video_title} is {age_in_hours:.2f} hours old. Waiting until it's older than {self.defer_hours} hours.")
                     continue
 
@@ -498,6 +508,8 @@ class DataHandler:
             "Filter_Title_Text": "",
             "Negate_Filter": False,
             "Media_Type": "Video",
+            "Search_Limit": "",
+            "Live_Rule": "Ignore",
         }
         self.req_channel_list.append(new_channel)
         socketio.emit("new_channel_added", new_channel)
