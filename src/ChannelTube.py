@@ -157,12 +157,30 @@ class DataHandler:
 
         days_to_retrieve = channel["DL_Days"]
         channel_link = channel["Link"]
-        if "playlist" in channel_link:
+        video_to_download_list = []
+
+        if "/live" in channel_link.lower():
+            timestamp = datetime.datetime.now()
+            date_str = timestamp.strftime("%d-%m-%Y")
+            video_upload_date = timestamp.strftime("%Y%m%d")
+            video_to_download_list.append(
+                {
+                    "title": f'{channel["Name"]} - {date_str}',
+                    "upload_date": video_upload_date,
+                    "link": channel_link,
+                    "id": video_upload_date,
+                    "channel_name": channel["Name"],
+                }
+            )
+            return video_to_download_list
+
+        elif "playlist?list" in channel_link.lower():
             playlist = ydl.extract_info(channel_link, download=False)
             channel_title = playlist.get("title")
             channel_name = playlist.get("channel")
             channel_id = playlist.get("channel_id")
             self.general_logger.warning(f"Playlist Title: {channel_title} from Channel: {channel_name} and Channel ID: {channel_id}")
+
         else:
             channel_info = ydl.extract_info(channel_link, download=False)
             channel_id = channel_info.get("channel_id")
@@ -180,14 +198,18 @@ class DataHandler:
         today = datetime.datetime.now()
         cutoff_date = today - datetime.timedelta(days=days_to_retrieve)
 
-        video_to_download_list = []
         for video in playlist["entries"]:
             try:
                 video_title = video["title"]
                 video_link = video["url"]
-                duration = video["duration"]
+                duration = 0 if not video["duration"] else video["duration"]
                 actual_channel_name = video["channel"]
                 youtube_video_id = video["id"]
+                live_status = video["live_status"]
+
+                if live_status == "is_live" or live_status == "post_live":
+                    self.general_logger.warning(f"Ignoring current live video: {video_title} - {video_link}")
+                    continue
 
                 if duration <= 60:
                     self.general_logger.warning(f"Ignoring short video: {video_title} - {video_link}")
@@ -358,6 +380,8 @@ class DataHandler:
                     "progress_hooks": [self.progress_callback],
                     "postprocessors": post_processors,
                     "no_mtime": True,
+                    "live_from_start": True,
+                    "extractor_args": {"youtubetab": {"skip": ["authcheck"]}},
                 }
                 if merge_output_format:
                     ydl_opts["merge_output_format"] = merge_output_format
