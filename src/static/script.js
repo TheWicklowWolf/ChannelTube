@@ -36,6 +36,8 @@ function open_edit_modal(channel_id) {
     const negate_filter_checkbox = modal.querySelector("#negate-filter");
     const media_type_selector = modal.querySelectorAll("input[name='media-type-selector']");
     const filter_text_description = modal.querySelector("#filter-text-description");
+    const search_limit_input = modal.querySelector("#search-limit");
+    const live_rule_selector = modal.querySelectorAll("input[name='live-rule-selector']");
 
     channel_name_input.value = channel.Name;
     channel_link_input.value = channel.Link;
@@ -43,6 +45,7 @@ function open_edit_modal(channel_id) {
     keep_days_input.value = channel.Keep_Days;
     title_filter_text_input.value = channel.Filter_Title_Text;
     negate_filter_checkbox.checked = channel.Negate_Filter;
+    search_limit_input.value = channel.Search_Limit;
 
     change_filter_description(negate_filter_checkbox, filter_text_description);
 
@@ -52,6 +55,12 @@ function open_edit_modal(channel_id) {
 
     media_type_selector.forEach(radio => {
         if (radio.value === channel.Media_Type) {
+            radio.checked = true;
+        }
+    });
+
+    live_rule_selector.forEach(radio => {
+        if (radio.value === channel.Live_Rule) {
             radio.checked = true;
         }
     });
@@ -118,6 +127,8 @@ function save_channel_changes(channel) {
         Filter_Title_Text: document.getElementById("title-filter-text").value,
         Negate_Filter: document.getElementById("negate-filter").checked,
         Media_Type: document.querySelector("input[name='media-type-selector']:checked").value,
+        Search_Limit: document.getElementById("search-limit").value,
+        Live_Rule: document.querySelector("input[name='live-rule-selector']:checked").value
     };
 
     socket.emit("save_channel_changes", channel_updates);

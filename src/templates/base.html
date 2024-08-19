@@ -46,25 +46,24 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div id="save-settings-message" style="display: none;" class="alert alert-success mt-3">
-          </div>
           <div class="form-group-modal ">
             <label for="sync-start-times">Sync Schedule:</label>
-            <input type="text" class="form-control" id="sync-start-times"
+            <input type="text" class="form-control border-secondary-subtle" id="sync-start-times"
               placeholder="Enter Hour in 24hr format (use , for multiple hours)">
           </div>
           <div class="form-group-modal my-4">
             <label for="media-server-addresses">Media Server Addresses:</label>
-            <input type="text" class="form-control" id="media-server-addresses"
+            <input type="text" class="form-control border-secondary-subtle" id="media-server-addresses"
               placeholder="Enter Media Server Address">
           </div>
           <div class="form-group-modal my-4">
             <label for="media-server-tokens">Media Server Tokens:</label>
-            <input type="text" class="form-control" id="media-server-tokens" placeholder="Enter Media Server Tokens">
+            <input type="text" class="form-control border-secondary-subtle" id="media-server-tokens"
+              placeholder="Enter Media Server Tokens">
           </div>
           <div class="form-group-modal">
             <label for="media-server-library-name">Media Server Library Name:</label>
-            <input type="text" class="form-control" id="media-server-library-name"
+            <input type="text" class="form-control border-secondary-subtle" id="media-server-library-name"
               placeholder="Enter Media Server Library Name">
           </div>
         </div>
@@ -77,6 +76,8 @@
             <input class="form-check-input rounded" type="checkbox" id="themeSwitch">
           </div>
           <i class="fa fa-moon"></i>
+        </div>
+        <div id="save-settings-message" style="display: none;" class="alert alert-success mx-3 mb-2 p-2">
         </div>
       </div>
     </div>
@@ -107,7 +108,7 @@
       <td class="text-center channel-item-count"></td>
       <td class="text-center">
         <button class="btn btn-sm btn-primary custom-button-width edit-button">Edit</button>
-        <button class="btn btn-sm btn-danger custom-button-width remove-button">Remove</button>
+        <button class="btn btn-sm btn-secondary custom-button-width remove-button">Remove</button>
       </td>
     </tr>
   </template>
@@ -117,47 +118,76 @@
       aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header p-2 m-1">
             <h5 class="modal-title" id="edit-channel-modal-label">Edit Channel</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body py-1">
-            <div id="save-channel-message" style="display: none;" class="alert alert-success mt-3">
-            </div>
             <form>
               <div class="form-group">
                 <label for="channel-name">Channel Name:</label>
-                <input type="text" class="form-control" id="channel-name" value="">
+                <input type="text" class="form-control border-secondary-subtle" id="channel-name" value="">
               </div>
-              <div class="form-group my-2">
+              <div class="form-group my-3">
                 <label for="channel-link">Channel Link:</label>
-                <input type="text" class="form-control" id="channel-link" value="">
+                <input type="text" class="form-control border-secondary-subtle" id="channel-link" value="">
               </div>
-              <div class="form-group my-2">
-                <label for="download-days">Days to Sync:</label>
-                <input type="number" class="form-control" min="0" id="download-days" value="">
-              </div>
-              <div class="form-group my-2">
-                <label for="keep-days">Days to Keep:</label>
-                <input type="number" class="form-control" min="0" id="keep-days" value="">
-              </div>
-              <div class="form-group my-2">
-                <label>Media Type:</label>
+              <fieldset class="form-group mt-3">
+                <legend class="m-0 p-0 col-form-label">Media Type:</legend>
                 <div class="row">
-                  <div class="col-6">
-                    <div class="form-check">
+                  <div class="d-flex align-items-center mt-1">
+                    <div class="form-check me-3">
                       <input class="form-check-input" type="radio" name="media-type-selector" id="video-option"
                         value="Video">
                       <label class="form-check-label" for="video-option">Complete Video</label>
                     </div>
-                  </div>
-                  <div class="col-6">
-                    <div class="form-check">
+                    <div class="form-check me-3">
                       <input class="form-check-input" type="radio" name="media-type-selector" id="audio-option"
                         value="Audio">
                       <label class="form-check-label" for="audio-option">Audio Only</label>
                     </div>
                   </div>
+                </div>
+              </fieldset>
+              <div class="form-group my-3">
+                <div class="row">
+                  <div class="col-6">
+                    <label for="download-days">Days to Sync:</label>
+                    <input type="number" class="form-control border-secondary-subtle" min="0" id="download-days"
+                      value="">
+                  </div>
+                  <div class="col-6">
+                    <label for="keep-days">Days to Keep:</label>
+                    <input type="number" class="form-control border-secondary-subtle" min="0" id="keep-days" value="">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group my-3">
+                <div class="row">
+                  <div class="col-4">
+                    <label for="search-limit">Search Limit:</label>
+                    <input type="number" class="form-control border-secondary-subtle" id="search-limit" value="">
+                  </div>
+                  <fieldset class="col-8">
+                    <legend class="col-form-label p-0">Rule for Live Stream:</legend>
+                    <div class="d-flex align-items-center pt-1 mt-1">
+                      <div class="form-check me-3">
+                        <input class="form-check-input" type="radio" name="live-rule-selector" id="ignore-rule"
+                          value="Ignore">
+                        <label class="form-check-label" for="ignore-rule">Ignore</label>
+                      </div>
+                      <div class="form-check me-3">
+                        <input class="form-check-input" type="radio" name="live-rule-selector" id="allow-rule"
+                          value="Allow">
+                        <label class="form-check-label" for="allow-rule">Allow</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="live-rule-selector" id="only-rule"
+                          value="Only">
+                        <label class="form-check-label" for="only-rule">Only</label>
+                      </div>
+                    </div>
+                  </fieldset>
                 </div>
               </div>
               <div class="form-group">
@@ -169,20 +199,23 @@
                     <label class="form-check-label" for="negate-filter">Negate</label>
                   </div>
                 </div>
-                <p id="filter-text-description" class="m-1 text-secondary">
+                <p id="filter-text-description" class="m-0 text-secondary">
                   Only get videos with this text in the title.
                 </p>
               </div>
             </form>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer pb-1">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-primary" id="save-channel-changes-button">Save Changes</button>
+          </div>
+          <div id="save-channel-message" style="display: none;" class="alert alert-success mx-3 mb-2 p-2">
           </div>
         </div>
       </div>
     </div>
   </template>
+
   <script src="{{url_for('static',filename='script.js')}}"></script>
 </body>
 
