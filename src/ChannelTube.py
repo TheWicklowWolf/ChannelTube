@@ -413,12 +413,14 @@ class DataHandler:
 
     def progress_callback(self, progress_data):
         status = progress_data.get("status", "unknown")
+        fragment_index = progress_data.get("fragment_index", 1)
+        show_log_message = fragment_index % 10 == 0
 
         if status == "finished":
             self.general_logger.warning("Download complete")
             self.general_logger.warning("Processing File...")
 
-        elif status == "downloading" and int(time.time()) % 10 == 0:
+        elif status == "downloading" and show_log_message:
             percent_str = progress_data.get("_percent_str", "unknown")
             total_bytes_str = progress_data.get("_total_bytes_str", "unknown")
             speed_str = progress_data.get("_speed_str", "unknown")
