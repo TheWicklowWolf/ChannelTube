@@ -42,7 +42,6 @@ class DataHandler:
         os.makedirs(self.audio_download_folder, exist_ok=True)
 
         self.sync_start_times = []
-        self.sync_in_progress_flag = False
         self.settings_config_file = os.path.join(self.config_folder, "settings_config.json")
 
         self.req_channel_list = []
@@ -99,13 +98,15 @@ class DataHandler:
             sorted_channels = sorted(channels, key=lambda channel: channel.get("Name", "").lower())
 
             for idx, channel in enumerate(sorted_channels):
+                synced_state = channel.get("Last_Synced", "Never")
+                synced_state = "Incomplete" if synced_state == "In Progress" or synced_state == "Failed" else synced_state
                 full_channel_data = {
                     "Id": idx,
                     "Name": channel.get("Name", ""),
                     "Link": channel.get("Link", ""),
                     "DL_Days": channel.get("DL_Days", 0),
                     "Keep_Days": channel.get("Keep_Days", 0),
-                    "Last_Synced": channel.get("Last_Synced", "Never"),
+                    "Last_Synced": synced_state,
                     "Item_Count": channel.get("Item_Count", 0),
                     "Filter_Title_Text": channel.get("Filter_Title_Text", ""),
                     "Negate_Filter": channel.get("Negate_Filter", False),
@@ -134,7 +135,7 @@ class DataHandler:
             current_time = datetime.datetime.now()
             within_sync_window = current_time.hour in self.sync_start_times
 
-            if within_sync_window and not self.sync_in_progress_flag:
+            if within_sync_window:
                 self.general_logger.warning(f"Time to Start Sync - as current hour: {current_time.hour} in schedule {str(self.sync_start_times)}")
                 self.master_queue()
 
@@ -147,9 +148,6 @@ class DataHandler:
                 self.general_logger.warning(f"Checking sync schedule every 10 minutes: {str(self.sync_start_times)}")
 
             else:
-                if within_sync_window and self.sync_in_progress_flag:
-                    self.general_logger.warning(f"Scheduled sync is delayed by 10 minutes because another sync is currently in progress.")
-
                 time.sleep(600)
 
     def get_list_of_videos_from_youtube(self, channel, current_channel_files):
@@ -454,13 +452,16 @@ class DataHandler:
 
     def master_queue(self):
         try:
-            self.sync_in_progress_flag = True
             self.media_server_scan_req_flag = False
             self.general_logger.warning("Sync Task started...")
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.thread_limit) as executor:
-                futures = [executor.submit(self.process_channel, channel) for channel in self.req_channel_list]
-                concurrent.futures.wait(futures)
+                futures = []
+                for channel in self.req_channel_list:
+                    if channel.get("Last_Synced") not in ["In Progress", "Queued"]:
+                        channel["Last_Synced"] = "Queued"
+                        futures.append(executor.submit(self.process_channel, channel))
+            concurrent.futures.wait(futures)
 
             if self.req_channel_list:
                 self.save_channel_list_to_file()
@@ -481,9 +482,6 @@ class DataHandler:
 
         else:
             self.general_logger.warning("Sync Finished: Complete")
-
-        finally:
-            self.sync_in_progress_flag = False
 
     def process_channel(self, channel):
         try:
@@ -514,6 +512,10 @@ class DataHandler:
         except Exception as e:
             self.general_logger.error(f'Error processing channel {channel["Name"]}: {str(e)}')
             channel["Last_Synced"] = "Failed"
+
+        finally:
+            data = {"Channel_List": self.req_channel_list}
+            socketio.emit("update_channel_list", data)
 
     def add_channel(self):
         existing_ids = [channel.get("Id", 0) for channel in self.req_channel_list]
@@ -639,14 +641,10 @@ class DataHandler:
             self.save_channel_list_to_file()
 
     def manual_start(self):
-        if self.sync_in_progress_flag:
-            self.general_logger.warning("Sync already in progress - ignoring manual request.")
-            socketio.emit("settings_save_message", "Sync already in progress.")
-        else:
-            self.general_logger.warning("Manual sync triggered.")
-            task_thread = threading.Thread(target=self.master_queue, daemon=True)
-            task_thread.start()
-            socketio.emit("settings_save_message", "Manual sync initiated.")
+        self.general_logger.warning("Manual sync triggered.")
+        task_thread = threading.Thread(target=self.master_queue, daemon=True)
+        task_thread.start()
+        socketio.emit("settings_save_message", "Manual sync initiated.")
 
 
 app = Flask(__name__)
