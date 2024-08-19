@@ -428,7 +428,7 @@ class DataHandler:
             elapsed_str = f"{int(minutes)} minutes and {int(seconds)} seconds"
             self.general_logger.warning(f"Live Video - Downloaded: {downloaded_bytes_str} (Fragment Index: {fragment_index}, Elapsed: {elapsed_str})")
 
-        elif status == "downloading" and int(seconds) % 5 == 0:
+        elif status == "downloading" and not is_live_video and int(seconds) % 5 == 0:
             percent_str = progress_data.get("_percent_str", "unknown")
             total_bytes_str = progress_data.get("_total_bytes_str", "unknown")
             speed_str = progress_data.get("_speed_str", "unknown")
