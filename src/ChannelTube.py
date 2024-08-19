@@ -415,20 +415,20 @@ class DataHandler:
         status = progress_data.get("status", "unknown")
         is_live_video = progress_data.get("info_dict", {}).get("is_live", False)
         fragment_index = progress_data.get("fragment_index", 1)
-        show_log_message = fragment_index % 10 == 0
+        show_live_log_message = fragment_index % 10 == 0
+        elapsed = progress_data.get("elapsed", 1)
+        minutes, seconds = divmod(elapsed, 60)
 
         if status == "finished":
             self.general_logger.warning("Download complete")
             self.general_logger.warning("Processing file...")
 
-        elif status == "downloading" and is_live_video and show_log_message:
+        elif status == "downloading" and is_live_video and show_live_log_message:
             downloaded_bytes_str = progress_data.get("_downloaded_bytes_str", "0")
-            elapsed = progress_data.get("elapsed", 1)
-            minutes, seconds = divmod(elapsed, 60)
             elapsed_str = f"{int(minutes)} minutes and {int(seconds)} seconds"
             self.general_logger.warning(f"Live Video - Downloaded: {downloaded_bytes_str} (Fragment Index: {fragment_index}, Elapsed: {elapsed_str})")
 
-        elif status == "downloading" and show_log_message:
+        elif status == "downloading" and int(seconds) % 5 == 0:
             percent_str = progress_data.get("_percent_str", "unknown")
             total_bytes_str = progress_data.get("_total_bytes_str", "unknown")
             speed_str = progress_data.get("_speed_str", "unknown")
