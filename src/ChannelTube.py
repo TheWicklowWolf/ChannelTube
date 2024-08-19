@@ -145,9 +145,11 @@ class DataHandler:
                 self.general_logger.warning(f"Sync Complete - Sleeping for {int(sleep_seconds)} seconds until {next_hour.time()}")
                 time.sleep(sleep_seconds)
                 self.general_logger.warning(f"Checking sync schedule every 10 minutes: {str(self.sync_start_times)}")
+
             else:
-                if self.sync_in_progress_flag:
+                if within_sync_window and self.sync_in_progress_flag:
                     self.general_logger.warning(f"Scheduled sync is delayed by 10 minutes because another sync is currently in progress.")
+
                 time.sleep(600)
 
     def get_list_of_videos_from_youtube(self, channel, current_channel_files):
@@ -409,13 +411,20 @@ class DataHandler:
             except Exception as e:
                 self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
 
-    def progress_callback(self, d):
-        if d["status"] == "finished":
+    def progress_callback(self, progress_data):
+        status = progress_data.get("status", "unknown")
+
+        if status == "finished":
             self.general_logger.warning("Download complete")
             self.general_logger.warning("Processing File...")
 
-        elif d["status"] == "downloading" and int(time.time()) % 10 == 0:
-            self.general_logger.warning(f'Downloaded {d["_percent_str"]} of {d["_total_bytes_str"]} at {d["_speed_str"]} with ETA {d["_eta_str"]}')
+        elif status == "downloading" and int(time.time()) % 10 == 0:
+            percent_str = progress_data.get("_percent_str", "unknown")
+            total_bytes_str = progress_data.get("_total_bytes_str", "unknown")
+            speed_str = progress_data.get("_speed_str", "unknown")
+            eta_str = progress_data.get("_eta_str", "unknown")
+
+            self.general_logger.warning(f"Downloaded {percent_str} of {total_bytes_str} at {speed_str} with ETA {eta_str}")
 
     def add_extra_metadata(self, file_path, item):
         try:
@@ -468,6 +477,7 @@ class DataHandler:
 
     def process_channel(self, channel):
         try:
+            channel["Last_Synced"] = "In Progress"
             channel_folder_path = os.path.join(self.audio_download_folder, channel["Name"]) if channel["Media_Type"] == "Audio" else os.path.join(self.download_folder, channel["Name"])
             os.makedirs(channel_folder_path, exist_ok=True)
 
@@ -493,6 +503,7 @@ class DataHandler:
 
         except Exception as e:
             self.general_logger.error(f'Error processing channel {channel["Name"]}: {str(e)}')
+            channel["Last_Synced"] = "Failed"
 
     def add_channel(self):
         existing_ids = [channel.get("Id", 0) for channel in self.req_channel_list]
@@ -500,7 +511,7 @@ class DataHandler:
         new_channel = {
             "Id": next_id,
             "Name": "New Channel",
-            "Link": "Channel URL",
+            "Link": "https://www.youtube.com/@NewChannel",
             "Keep_Days": 28,
             "DL_Days": 14,
             "Last_Synced": "Never",
