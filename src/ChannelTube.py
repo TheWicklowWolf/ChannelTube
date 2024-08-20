@@ -99,7 +99,7 @@ class DataHandler:
 
             for idx, channel in enumerate(sorted_channels):
                 synced_state = channel.get("Last_Synced", "Never")
-                synced_state = "Incomplete" if synced_state == "In Progress" or synced_state == "Failed" else synced_state
+                synced_state = "Incomplete" if synced_state in ["In Progress", "Failed", "Queued"] else synced_state
                 full_channel_data = {
                     "Id": idx,
                     "Name": channel.get("Name", ""),
@@ -213,6 +213,14 @@ class DataHandler:
                 live_status = video["live_status"]
 
                 if channel["Live_Rule"] == "Only":
+                    if len(video_to_download_list):
+                        self.general_logger.warning(f"Live video (ignoring everything else) found for channel: {actual_channel_name}")
+                        break
+
+                    if live_status == "is_upcoming":
+                        self.general_logger.warning(f"Skipping upcoming live video: {video_title} - {video_link}")
+                        continue
+
                     if not (live_status == "is_live" or live_status == "post_live"):
                         self.general_logger.warning(f"No live videos for channel: {actual_channel_name}")
                         break
@@ -344,7 +352,6 @@ class DataHandler:
             return file_mtime
 
     def download_items(self, item_list, channel_folder_path, channel):
-        self.media_server_scan_req_flag = True
         for item in item_list:
             self.general_logger.warning(f'Starting download: {item["title"]}')
             try:
@@ -409,6 +416,8 @@ class DataHandler:
             except Exception as e:
                 self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
 
+        self.media_server_scan_req_flag = True
+
     def progress_callback(self, progress_data):
         status = progress_data.get("status", "unknown")
         is_live_video = progress_data.get("info_dict", {}).get("is_live", False)
@@ -461,15 +470,13 @@ class DataHandler:
                     if channel.get("Last_Synced") not in ["In Progress", "Queued"]:
                         channel["Last_Synced"] = "Queued"
                         futures.append(executor.submit(self.process_channel, channel))
+                socketio.emit("update_channel_list", {"Channel_List": self.req_channel_list})
             concurrent.futures.wait(futures)
 
             if self.req_channel_list:
                 self.save_channel_list_to_file()
             else:
                 self.general_logger.warning("Channel list empty")
-
-            data = {"Channel_List": self.req_channel_list}
-            socketio.emit("update_channel_list", data)
 
             if self.media_server_scan_req_flag == True and self.media_server_tokens:
                 self.sync_media_servers()
@@ -482,6 +489,9 @@ class DataHandler:
 
         else:
             self.general_logger.warning("Sync Finished: Complete")
+
+        finally:
+            socketio.emit("update_channel_list", {"Channel_List": self.req_channel_list})
 
     def process_channel(self, channel):
         try:
@@ -514,8 +524,7 @@ class DataHandler:
             channel["Last_Synced"] = "Failed"
 
         finally:
-            data = {"Channel_List": self.req_channel_list}
-            socketio.emit("update_channel_list", data)
+            socketio.emit("update_channel_list", {"Channel_List": self.req_channel_list})
 
     def add_channel(self):
         existing_ids = [channel.get("Id", 0) for channel in self.req_channel_list]
@@ -660,8 +669,7 @@ def home():
 
 @socketio.on("connect")
 def connection():
-    data = {"Channel_List": data_handler.req_channel_list}
-    socketio.emit("update_channel_list", data)
+    socketio.emit("update_channel_list", {"Channel_List": data_handler.req_channel_list})
 
 
 @socketio.on("get_settings")
