@@ -12,6 +12,7 @@ from flask_socketio import SocketIO
 import yt_dlp
 from plexapi.server import PlexServer
 import requests
+import tempfile
 
 
 class DataHandler:
@@ -159,6 +160,7 @@ class DataHandler:
         ydl_opts = {
             "quiet": True,
             "extract_flat": True,
+            "ffmpeg_location": "/usr/bin/ffmpeg",
         }
         if search_limit:
             ydl_opts["playlist_items"] = f"1-{search_limit}"
@@ -354,7 +356,9 @@ class DataHandler:
     def download_items(self, item_list, channel_folder_path, channel):
         for item in item_list:
             self.general_logger.warning(f'Starting download: {item["title"]}')
+
             try:
+                temp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
                 link = item["link"]
                 title = self.string_cleaner(item["title"])
                 selected_media_type = channel["Media_Type"]
@@ -381,13 +385,14 @@ class DataHandler:
 
                 post_processors.extend(
                     [
-                        {"key": "EmbedThumbnail"},
                         {"key": "FFmpegMetadata"},
+                        {"key": "EmbedThumbnail"},
                     ]
                 )
 
                 folder_and_filename = os.path.join(channel_folder_path, title)
                 ydl_opts = {
+                    "paths": {"home": self.download_folder, "temp": temp_dir.name},
                     "logger": self.general_logger,
                     "ffmpeg_location": "/usr/bin/ffmpeg",
                     "format": selected_format,
@@ -415,6 +420,9 @@ class DataHandler:
 
             except Exception as e:
                 self.general_logger.error(f"Error downloading video: {link}. Error message: {e}")
+
+            finally:
+                temp_dir.cleanup()
 
         self.media_server_scan_req_flag = True
 
