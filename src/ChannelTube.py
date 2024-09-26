@@ -360,7 +360,7 @@ class DataHandler:
             try:
                 temp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
                 link = item["link"]
-                title = self.string_cleaner(item["title"])
+                cleaned_title = self.string_cleaner(item["title"])
                 selected_media_type = channel["Media_Type"]
                 post_processors = [
                     {"key": "SponsorBlock", "categories": ["sponsor"]},
@@ -390,13 +390,13 @@ class DataHandler:
                     ]
                 )
 
-                folder_and_filename = os.path.join(channel_folder_path, title)
+                folder_and_filename = os.path.join(channel_folder_path, cleaned_title)
                 ydl_opts = {
-                    "paths": {"home": self.download_folder, "temp": temp_dir.name},
+                    "paths": {"home": channel_folder_path, "temp": temp_dir.name},
                     "logger": self.general_logger,
                     "ffmpeg_location": "/usr/bin/ffmpeg",
                     "format": selected_format,
-                    "outtmpl": f"{folder_and_filename}.%(ext)s",
+                    "outtmpl": f"{cleaned_title}.%(ext)s",
                     "quiet": True,
                     "writethumbnail": True,
                     "progress_hooks": [self.progress_callback],
