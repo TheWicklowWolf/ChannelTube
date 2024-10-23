@@ -369,11 +369,11 @@ class DataHandler:
 
                 if selected_media_type == "Video":
                     selected_ext = "mp4"
-                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio/best"
+                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio[acodec=aac]/bestvideo+bestaudio/best"
                     merge_output_format = selected_ext
                 else:
                     selected_ext = "m4a"
-                    selected_format = f"bestaudio[ext={selected_ext}]/{self.audio_format_id}/bestaudio"
+                    selected_format = f"bestaudio[ext={selected_ext}]/{self.audio_format_id}/bestaudio[acodec=aac]/bestaudio"
                     merge_output_format = None
                     post_processors.append(
                         {
