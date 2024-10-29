@@ -166,22 +166,7 @@ class DataHandler:
             ydl_opts["playlist_items"] = f"1-{search_limit}"
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
-        if "/live" in channel_link.lower():
-            timestamp = datetime.datetime.now()
-            date_str = timestamp.strftime("%d-%m-%Y")
-            video_upload_date = timestamp.strftime("%Y%m%d")
-            video_to_download_list.append(
-                {
-                    "title": f'{channel["Name"]} - {date_str}',
-                    "upload_date": video_upload_date,
-                    "link": channel_link,
-                    "id": video_upload_date,
-                    "channel_name": channel["Name"],
-                }
-            )
-            return video_to_download_list
-
-        elif "playlist?list" in channel_link.lower():
+        if "playlist?list" in channel_link.lower():
             playlist = ydl.extract_info(channel_link, download=False)
             channel_title = playlist.get("title")
             channel_name = playlist.get("channel")
@@ -199,8 +184,15 @@ class DataHandler:
                 raise Exception("No Channel Title")
 
             self.general_logger.warning(f"Channel Title: {channel_title} and Channel ID: {channel_id}")
-            uploads_playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
-            playlist = ydl.extract_info(uploads_playlist_url, download=False)
+
+            if channel["Live_Rule"] == "Only":
+                self.general_logger.warning(f"Getting list of live videos for channel: {channel_title}")
+                playlist_url = f"{channel_link}/streams"
+            else:
+                self.general_logger.warning(f"Getting list of videos for channel: {channel_title}")
+                playlist_url = f"https://www.youtube.com/playlist?list=UU{channel_id[2:]}"
+
+            playlist = ydl.extract_info(playlist_url, download=False)
 
         today = datetime.datetime.now()
         cutoff_date = today - datetime.timedelta(days=days_to_retrieve)
@@ -210,13 +202,14 @@ class DataHandler:
                 video_title = video["title"]
                 video_link = video["url"]
                 duration = 0 if not video["duration"] else video["duration"]
-                actual_channel_name = video["channel"]
+
                 youtube_video_id = video["id"]
                 live_status = video["live_status"]
 
                 if channel["Live_Rule"] == "Only":
                     if len(video_to_download_list):
-                        self.general_logger.warning(f"Live video (ignoring everything else) found for channel: {actual_channel_name}")
+                        self.general_logger.warning(f"Live video found for channel: {channel_title}")
+                        self.general_logger.warning(f"Downloading first live video and ignoring everything else for channel: {channel_title}")
                         break
 
                     if live_status == "is_upcoming":
@@ -224,7 +217,7 @@ class DataHandler:
                         continue
 
                     if not (live_status == "is_live" or live_status == "post_live"):
-                        self.general_logger.warning(f"No live videos for channel: {actual_channel_name}")
+                        self.general_logger.warning(f"No active live videos for channel: {channel_title}")
                         break
 
                 if channel["Live_Rule"] == "Ignore" and live_status is not None:
@@ -267,7 +260,7 @@ class DataHandler:
                         self.general_logger.warning(f'Skipped video: {video_title} as it does not contain the filter text: {channel["Filter_Title_Text"]}')
                         continue
 
-                video_to_download_list.append({"title": video_title, "upload_date": video_upload_date, "link": video_link, "id": youtube_video_id, "channel_name": actual_channel_name})
+                video_to_download_list.append({"title": video_title, "upload_date": video_upload_date, "link": video_link, "id": youtube_video_id, "channel_name": channel_title})
                 self.general_logger.warning(f"Added video to download list: {video_title} -> {video_link}")
 
             except Exception as e:
