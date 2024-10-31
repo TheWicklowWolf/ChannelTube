@@ -202,7 +202,6 @@ class DataHandler:
                 video_title = video["title"]
                 video_link = video["url"]
                 duration = 0 if not video["duration"] else video["duration"]
-
                 youtube_video_id = video["id"]
                 live_status = video["live_status"]
 
@@ -366,7 +365,7 @@ class DataHandler:
                     merge_output_format = selected_ext
                 else:
                     selected_ext = "m4a"
-                    selected_format = f"bestaudio[ext={selected_ext}]/{self.audio_format_id}/bestaudio[acodec=aac]/bestaudio"
+                    selected_format = f"{self.audio_format_id}/bestaudio[acodec=aac]/bestaudio"
                     merge_output_format = None
                     post_processors.append(
                         {
