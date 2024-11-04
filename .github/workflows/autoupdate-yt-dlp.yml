@@ -30,7 +30,7 @@ jobs:
         run: |
           pipenv install yt-dlp
           latest_version=$(pipenv run pip show yt-dlp | grep Version | cut -d' ' -f2)
-          current_version=$(grep -oP "(?<=yt_dlp==)\d+(\.\d+)+" requirements.txt || echo "0.0.0")
+          current_version=$(grep -oP "(?<=yt_dlp\[default\]==)\d+(\.\d+)+" requirements.txt || echo "0.0.0")
           echo "LATEST_VERSION=$latest_version" >> $GITHUB_ENV
           echo "CURRENT_VERSION=$current_version" >> $GITHUB_ENV
 
@@ -38,7 +38,7 @@ jobs:
         if: ${{ env.LATEST_VERSION != env.CURRENT_VERSION }}
         run: |
           latest_version=${{ env.LATEST_VERSION }}
-          sed -i "s/^yt_dlp.*/yt_dlp==$latest_version/" requirements.txt
+          sed -i "s/^yt_dlp\[default\].*/yt_dlp\[default\]==$latest_version/" requirements.txt
           git config --global user.email "yt-dlp@autoupdate"
           git config --global user.name "yt-dlp-autoupdate"
           git add requirements.txt
