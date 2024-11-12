@@ -29,6 +29,8 @@ services:
 
 Certain values can be set via environment variables:
 
+* __PUID__: The user ID to run the app with. Defaults to `1000`. 
+* __PGID__: The group ID to run the app with. Defaults to `1000`.
 * __video_format_id__: Specifies the ID for the video format. The default value is `137`.
 * __audio_format_id__: Specifies the ID for the audio format. The default value is `140`.
 * __defer_hours__: Defines the time to defer in hours. The default value is `0`.
