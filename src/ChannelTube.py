@@ -361,7 +361,7 @@ class DataHandler:
 
                 if selected_media_type == "Video":
                     selected_ext = "mp4"
-                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio[acodec=aac]/bestvideo+bestaudio/best"
+                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo+bestaudio[acodec=aac]/bestvideo+bestaudio[acodec!=opus]/best"
                     merge_output_format = selected_ext
                 else:
                     selected_ext = "m4a"
