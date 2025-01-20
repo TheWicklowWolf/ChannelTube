@@ -35,6 +35,8 @@ Certain values can be set via environment variables:
 * __audio_format_id__: Specifies the ID for the audio format. The default value is `140`.
 * __defer_hours__: Defines the time to defer in hours. The default value is `0`.
 * __thread_limit__: Sets the maximum number of threads to use. The default value is `1`.
+* __fallback_vcodec__: Specifies the fallback video codec to use. Defaults to `vp9`.  
+* __fallback_acodec__ :Specifies the fallback audio codec to use. Defaults to `mp4a`.  
 
 > For information on format IDs, refer to [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 > 

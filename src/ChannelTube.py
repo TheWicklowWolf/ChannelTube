@@ -37,6 +37,8 @@ class DataHandler:
         self.audio_format_id = os.environ.get("audio_format_id", "140")
         self.defer_hours = float(os.environ.get("defer_hours", "0"))
         self.thread_limit = int(os.environ.get("thread_limit", "1"))
+        self.fallback_vcodec = os.environ.get("fallback_vcodec", "vp9")
+        self.fallback_acodec = os.environ.get("fallback_acodec", "mp4a")
 
         os.makedirs(self.config_folder, exist_ok=True)
         os.makedirs(self.download_folder, exist_ok=True)
@@ -361,11 +363,12 @@ class DataHandler:
 
                 if selected_media_type == "Video":
                     selected_ext = "mp4"
-                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo[vcodec^=vp9]+bestaudio[acodec^=mp4a]/bestvideo[vcodec!^=av]+bestaudio[acodec!^=opus]/best"
+                    selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo[vcodec^={self.fallback_vcodec}]+bestaudio[acodec^={self.fallback_acodec}]/bestvideo+bestaudio/best"
+
                     merge_output_format = selected_ext
                 else:
                     selected_ext = "m4a"
-                    selected_format = f"{self.audio_format_id}/bestaudio[acodec=aac]/bestaudio"
+                    selected_format = f"{self.audio_format_id}/bestaudio[acodec^={self.fallback_acodec}]/bestaudio"
                     merge_output_format = None
                     post_processors.append(
                         {
