@@ -17,7 +17,7 @@ import tempfile
 
 class DataHandler:
     def __init__(self):
-        logging.basicConfig(level=logging.WARNING, format="%(message)s")
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
         self.general_logger = logging.getLogger()
 
         app_name_text = os.path.basename(__file__).replace(".py", "")
@@ -39,6 +39,10 @@ class DataHandler:
         self.thread_limit = int(os.environ.get("thread_limit", "1"))
         self.fallback_vcodec = os.environ.get("fallback_vcodec", "vp9")
         self.fallback_acodec = os.environ.get("fallback_acodec", "mp4a")
+        self.subtitles = os.environ.get("subtitles", "none").lower()
+        self.subtitles = "none" if self.subtitles not in ("none", "embed", "external") else self.subtitles
+        self.subtitle_languages = os.environ.get("subtitle_languages", "en").split(",")
+        self.verbose_logs = os.environ.get("verbose_logs", "false").lower() == "true"
 
         os.makedirs(self.config_folder, exist_ok=True)
         os.makedirs(self.download_folder, exist_ok=True)
@@ -163,6 +167,7 @@ class DataHandler:
             "quiet": True,
             "extract_flat": True,
             "ffmpeg_location": "/usr/bin/ffmpeg",
+            "verbose": self.verbose_logs,
         }
         if search_limit:
             ydl_opts["playlist_items"] = f"1-{search_limit}"
@@ -311,12 +316,15 @@ class DataHandler:
                 if not os.path.isfile(file_path):
                     continue
                 file_base_name, file_ext = os.path.splitext(filename.lower())
+
                 video_file_check = file_ext == ".mp4" and selected_media_type == "Video"
                 audio_file_check = file_ext == ".m4a" and selected_media_type == "Audio"
-                if not (video_file_check or audio_file_check):
+                subtitle_file_check = file_ext == ".srt" and self.subtitles == "external"
+
+                if not (video_file_check or audio_file_check or subtitle_file_check):
                     continue
 
-                file_mtime = self.get_file_modification_time(file_path, filename)
+                file_mtime = self.get_file_modification_time(file_path, filename, file_ext)
                 age = current_datetime - file_mtime
 
                 if age > datetime.timedelta(days=days_to_keep):
@@ -324,14 +332,19 @@ class DataHandler:
                     self.general_logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
                     self.media_server_scan_req_flag = True
                 else:
-                    channel["Item_Count"] += 1
+                    if file_ext in (".mp4", ".m4a"):
+                        channel["Item_Count"] += 1
                     self.general_logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
 
             except Exception as e:
                 self.general_logger.error(f"Error Cleaning Old Files: {filename} {str(e)}")
 
-    def get_file_modification_time(self, file_path, filename):
+    def get_file_modification_time(self, file_path, filename, file_ext):
         try:
+            if file_ext == ".srt":
+                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                return file_mtime
+
             mpeg4_file = MP4(file_path)
             mpeg4_file_created_timestamp = mpeg4_file.get("\xa9day", [None])[0]
             if mpeg4_file_created_timestamp:
@@ -364,8 +377,8 @@ class DataHandler:
                 if selected_media_type == "Video":
                     selected_ext = "mp4"
                     selected_format = f"{self.video_format_id}+{self.audio_format_id}/bestvideo[vcodec^={self.fallback_vcodec}]+bestaudio[acodec^={self.fallback_acodec}]/bestvideo+bestaudio/best"
-
                     merge_output_format = selected_ext
+
                 else:
                     selected_ext = "m4a"
                     selected_format = f"{self.audio_format_id}/bestaudio[acodec^={self.fallback_acodec}]/bestaudio"
@@ -399,7 +412,23 @@ class DataHandler:
                     "no_mtime": True,
                     "live_from_start": True,
                     "extractor_args": {"youtubetab": {"skip": ["authcheck"]}},
+                    "verbose": self.verbose_logs,
                 }
+
+                if self.subtitles in ["embed", "external"]:
+                    ydl_opts.update(
+                        {
+                            "subtitlesformat": "best",
+                            "writeautomaticsub": True,
+                            "writesubtitles": True,
+                            "subtitleslangs": self.subtitle_languages,
+                        }
+                    )
+                    if self.subtitles == "embed":
+                        post_processors.extend([{"key": "FFmpegEmbedSubtitle", "already_have_subtitle": False}])
+                    elif self.subtitles == "external":
+                        post_processors.extend([{"key": "FFmpegSubtitlesConvertor", "format": "srt", "when": "before_dl"}])
+
                 if merge_output_format:
                     ydl_opts["merge_output_format"] = merge_output_format
                 if self.cookies_path:

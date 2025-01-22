@@ -37,6 +37,10 @@ Certain values can be set via environment variables:
 * __thread_limit__: Sets the maximum number of threads to use. The default value is `1`.
 * __fallback_vcodec__: Specifies the fallback video codec to use. Defaults to `vp9`.  
 * __fallback_acodec__ :Specifies the fallback audio codec to use. Defaults to `mp4a`.  
+* __subtitles__: Controls subtitle handling. Options: `none`, `embed`, `external`. Defaults to `none`.
+* __subtitle_languages__: Comma-separated list of subtitle languages to include. Defaults to `en`.
+* __verbose_logs__: Enable verbose logging. Set to `true` or `false`. Defaults to `false`.
+
 
 > For information on format IDs, refer to [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
 > 
