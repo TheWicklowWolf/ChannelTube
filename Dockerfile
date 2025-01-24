@@ -5,7 +5,7 @@ ARG RELEASE_VERSION
 ENV RELEASE_VERSION=${RELEASE_VERSION}
 
 # Install ffmpeg and su-exec
-RUN apk update && apk add --no-cache ffmpeg su-exec
+RUN apk update && apk add --no-cache ffmpeg su-exec && rm -rf /var/cache/apk/*
 
 # Create directories and set permissions
 COPY . /channeltube

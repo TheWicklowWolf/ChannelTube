@@ -14,6 +14,8 @@ from plexapi.server import PlexServer
 import requests
 import tempfile
 
+KEEP_PERMANENT_DAYS = -1
+
 
 class DataHandler:
     def __init__(self):
@@ -303,6 +305,9 @@ class DataHandler:
 
     def cleanup_old_files(self, channel_folder_path, channel):
         days_to_keep = channel["Keep_Days"]
+        if days_to_keep == KEEP_PERMANENT_DAYS:
+            return
+
         selected_media_type = channel["Media_Type"]
 
         raw_directory_list = os.listdir(channel_folder_path)
