@@ -306,7 +306,7 @@ class DataHandler:
             self.general_logger.warning(f'Found {len(folder_info["filename_list"])} files and {len(folder_info["id_list"])} IDs in {channel_folder_path}.')
             return folder_info
 
-    def count_items_in_directory(self, channel_folder_path):
+    def count_media_files(self, channel_folder_path):
         video_item_count = 0
         audio_item_count = 0
         for _, _, files in os.walk(channel_folder_path):
@@ -570,7 +570,7 @@ class DataHandler:
             self.cleanup_old_files(channel_folder_path, channel)
             self.general_logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
 
-            channel["Item_Count"] = self.count_items_in_directory(channel_folder_path)
+            channel["Item_Count"] = self.count_media_files(channel_folder_path)
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
             self.general_logger.warning(f'Completed processing for channel: {channel["Name"]}')
