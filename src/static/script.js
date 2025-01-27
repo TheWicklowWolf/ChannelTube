@@ -118,6 +118,13 @@ function remove_channel(channel_to_be_removed) {
 }
 
 function save_channel_changes(channel) {
+    let download_days = parseInt(document.getElementById("download-days").value, 10);
+    let keep_days = parseInt(document.getElementById("keep-days").value, 10);
+
+    if (keep_days !== -1 && keep_days < download_days) {
+        keep_days = download_days;
+        document.getElementById("keep-days").value = keep_days;
+    }
     const channel_updates = {
         Id: channel.Id,
         Name: document.getElementById("channel-name").value,

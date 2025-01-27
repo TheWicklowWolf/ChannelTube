@@ -14,7 +14,7 @@ from plexapi.server import PlexServer
 import requests
 import tempfile
 
-KEEP_PERMANENT_DAYS = -1
+PERMANENT_RETENTION = -1
 
 
 class DataHandler:
@@ -305,10 +305,11 @@ class DataHandler:
 
     def cleanup_old_files(self, channel_folder_path, channel):
         days_to_keep = channel["Keep_Days"]
-        if days_to_keep == KEEP_PERMANENT_DAYS:
-            return
-
         selected_media_type = channel["Media_Type"]
+
+        if days_to_keep == PERMANENT_RETENTION:
+            self.general_logger.warning(f"Skipping cleanup for channel: {channel['Name']} due to permanent retention policy.")
+            return
 
         raw_directory_list = os.listdir(channel_folder_path)
 
