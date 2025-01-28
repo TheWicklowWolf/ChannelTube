@@ -315,6 +315,7 @@ class DataHandler:
             file_path = os.path.join(channel_folder_path, filename)
             if not os.path.isfile(file_path):
                 continue
+
             file_base_name, file_ext = os.path.splitext(filename.lower())
             if file_ext in VIDEO_EXTENSIONS:
                 video_item_count += 1
@@ -340,6 +341,7 @@ class DataHandler:
                 file_path = os.path.join(channel_folder_path, filename)
                 if not os.path.isfile(file_path):
                     continue
+
                 file_base_name, file_ext = os.path.splitext(filename.lower())
 
                 video_file_check = file_ext in VIDEO_EXTENSIONS and selected_media_type == "Video"
