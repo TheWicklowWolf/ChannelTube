@@ -15,8 +15,8 @@ import requests
 import tempfile
 
 PERMANENT_RETENTION = -1
-VIDEO_EXTENSIONS = {".mp4", ".webm", ".mkv", ".flv", ".3gp", ".avi", ".mov", ".ts", ".vp9"}
-AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".opus", ".ogg", ".oga", ".wav", ".flac", ".mp4a"}
+VIDEO_EXTENSIONS = {".mp4"}
+AUDIO_EXTENSIONS = {".m4a"}
 MEDIA_FILE_EXTENSIONS = VIDEO_EXTENSIONS.union(AUDIO_EXTENSIONS)
 
 
@@ -570,7 +570,9 @@ class DataHandler:
             self.cleanup_old_files(channel_folder_path, channel)
             self.general_logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
 
+            self.general_logger.warning(f'Counting Files for: {channel["Name"]}')
             channel["Item_Count"] = self.count_media_files(channel_folder_path)
+            self.general_logger.warning(f'Finished Counting Files for channel: {channel["Name"]}')
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
             self.general_logger.warning(f'Completed processing for channel: {channel["Name"]}')
