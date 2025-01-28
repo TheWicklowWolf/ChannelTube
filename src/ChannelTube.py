@@ -309,14 +309,17 @@ class DataHandler:
     def count_media_files(self, channel_folder_path):
         video_item_count = 0
         audio_item_count = 0
-        for _, _, files in os.walk(channel_folder_path):
-            for file in files:
-                _, extension = os.path.splitext(file.lower())
 
-                if extension in VIDEO_EXTENSIONS:
-                    video_item_count += 1
-                elif extension in AUDIO_EXTENSIONS:
-                    audio_item_count += 1
+        raw_directory_list = os.listdir(channel_folder_path)
+        for filename in raw_directory_list:
+            file_path = os.path.join(channel_folder_path, filename)
+            if not os.path.isfile(file_path):
+                continue
+            file_base_name, file_ext = os.path.splitext(filename.lower())
+            if file_ext in VIDEO_EXTENSIONS:
+                video_item_count += 1
+            elif file_ext in AUDIO_EXTENSIONS:
+                audio_item_count += 1
 
         self.general_logger.info(f"Found {video_item_count} video files and {audio_item_count} audio files in {channel_folder_path}.")
 
