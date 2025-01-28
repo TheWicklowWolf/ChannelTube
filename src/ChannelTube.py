@@ -15,6 +15,9 @@ import requests
 import tempfile
 
 PERMANENT_RETENTION = -1
+VIDEO_EXTENSIONS = {".mp4", ".webm", ".mkv", ".flv", ".3gp", ".avi", ".mov", ".ts", ".vp9"}
+AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".opus", ".ogg", ".oga", ".wav", ".flac", ".mp4a"}
+MEDIA_FILE_EXTENSIONS = VIDEO_EXTENSIONS.union(AUDIO_EXTENSIONS)
 
 
 class DataHandler:
@@ -287,7 +290,7 @@ class DataHandler:
 
                 try:
                     file_base_name, file_ext = os.path.splitext(filename)
-                    if file_ext.lower() in [".mp4", ".m4a"]:
+                    if file_ext.lower() in MEDIA_FILE_EXTENSIONS:
                         folder_info["filename_list"].append(file_base_name)
                         mp4_file = MP4(file_path)
                         embedded_video_id = mp4_file.get("\xa9cmt", [None])[0]
@@ -303,6 +306,22 @@ class DataHandler:
             self.general_logger.warning(f'Found {len(folder_info["filename_list"])} files and {len(folder_info["id_list"])} IDs in {channel_folder_path}.')
             return folder_info
 
+    def count_media_files(self, channel_folder_path):
+        video_item_count = 0
+        audio_item_count = 0
+        for _, _, files in os.walk(channel_folder_path):
+            for file in files:
+                _, extension = os.path.splitext(file.lower())
+
+                if extension in VIDEO_EXTENSIONS:
+                    video_item_count += 1
+                elif extension in AUDIO_EXTENSIONS:
+                    audio_item_count += 1
+
+        self.general_logger.info(f"Found {video_item_count} video files and {audio_item_count} audio files in {channel_folder_path}.")
+
+        return video_item_count + audio_item_count
+
     def cleanup_old_files(self, channel_folder_path, channel):
         days_to_keep = channel["Keep_Days"]
         selected_media_type = channel["Media_Type"]
@@ -314,7 +333,6 @@ class DataHandler:
         raw_directory_list = os.listdir(channel_folder_path)
 
         current_datetime = datetime.datetime.now()
-        channel["Item_Count"] = 0
 
         for filename in raw_directory_list:
             try:
@@ -323,8 +341,8 @@ class DataHandler:
                     continue
                 file_base_name, file_ext = os.path.splitext(filename.lower())
 
-                video_file_check = file_ext == ".mp4" and selected_media_type == "Video"
-                audio_file_check = file_ext == ".m4a" and selected_media_type == "Audio"
+                video_file_check = file_ext in VIDEO_EXTENSIONS and selected_media_type == "Video"
+                audio_file_check = file_ext in AUDIO_EXTENSIONS and selected_media_type == "Audio"
                 subtitle_file_check = file_ext == ".srt" and self.subtitles == "external"
 
                 if not (video_file_check or audio_file_check or subtitle_file_check):
@@ -338,8 +356,6 @@ class DataHandler:
                     self.general_logger.warning(f"Deleted: {filename} as it is {age.days} days old.")
                     self.media_server_scan_req_flag = True
                 else:
-                    if file_ext in (".mp4", ".m4a"):
-                        channel["Item_Count"] += 1
                     self.general_logger.warning(f"File: {filename} is {age.days} days old, keeping file as not over {days_to_keep} days.")
 
             except Exception as e:
@@ -553,6 +569,8 @@ class DataHandler:
             self.general_logger.warning(f'Clearing Files for: {channel["Name"]}')
             self.cleanup_old_files(channel_folder_path, channel)
             self.general_logger.warning(f'Finished Clearing Files for channel: {channel["Name"]}')
+
+            channel["Item_Count"] = self.count_media_files(channel_folder_path)
 
             channel["Last_Synced"] = datetime.datetime.now().strftime("%d-%m-%y %H:%M:%S")
             self.general_logger.warning(f'Completed processing for channel: {channel["Name"]}')
