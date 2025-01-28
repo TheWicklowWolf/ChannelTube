@@ -333,10 +333,8 @@ class DataHandler:
             self.general_logger.warning(f"Skipping cleanup for channel: {channel['Name']} due to permanent retention policy.")
             return
 
-        raw_directory_list = os.listdir(channel_folder_path)
-
         current_datetime = datetime.datetime.now()
-
+        raw_directory_list = os.listdir(channel_folder_path)
         for filename in raw_directory_list:
             try:
                 file_path = os.path.join(channel_folder_path, filename)
