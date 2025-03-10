@@ -211,7 +211,7 @@ class DataHandler:
 
         for video in playlist["entries"]:
             try:
-                video_title = video["title"]
+                video_title = f'{video["title"]} [{video["id"]}]'
                 video_link = video["url"]
                 duration = 0 if not video["duration"] else video["duration"]
                 youtube_video_id = video["id"]
