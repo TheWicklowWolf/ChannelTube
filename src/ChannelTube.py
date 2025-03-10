@@ -47,6 +47,7 @@ class DataHandler:
         self.subtitles = os.environ.get("subtitles", "none").lower()
         self.subtitles = "none" if self.subtitles not in ("none", "embed", "external") else self.subtitles
         self.subtitle_languages = os.environ.get("subtitle_languages", "en").split(",")
+        self.include_id_in_filename = os.environ.get("include_id_in_filename", "false").lower() == "true"
         self.verbose_logs = os.environ.get("verbose_logs", "false").lower() == "true"
 
         os.makedirs(self.config_folder, exist_ok=True)
@@ -211,7 +212,7 @@ class DataHandler:
 
         for video in playlist["entries"]:
             try:
-                video_title = f'{video["title"]} [{video["id"]}]'
+                video_title = f'{video["title"]} [{video["id"]}]' if self.include_id_in_filename else video["title"]
                 video_link = video["url"]
                 duration = 0 if not video["duration"] else video["duration"]
                 youtube_video_id = video["id"]

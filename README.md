@@ -39,6 +39,7 @@ Certain values can be set via environment variables:
 * __fallback_acodec__ :Specifies the fallback audio codec to use. Defaults to `mp4a`.  
 * __subtitles__: Controls subtitle handling. Options: `none`, `embed`, `external`. Defaults to `none`.
 * __subtitle_languages__: Comma-separated list of subtitle languages to include. Defaults to `en`.
+* __include_id_in_filename__: Include Video ID in filename. Set to `true` or `false`. Defaults to `false`.
 * __verbose_logs__: Enable verbose logging. Set to `true` or `false`. Defaults to `false`.
 
 
