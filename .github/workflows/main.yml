@@ -97,3 +97,4 @@ jobs:
           tags: |
             ${{ env.REPO_NAME }}:${{ needs.bump-version-and-create-release-tag.outputs.new_version }}
             ${{ env.REPO_NAME }}:latest
+
