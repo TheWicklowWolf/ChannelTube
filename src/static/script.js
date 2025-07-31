@@ -38,6 +38,7 @@ function open_edit_modal(channel_id) {
     const filter_text_description = modal.querySelector("#filter-text-description");
     const search_limit_input = modal.querySelector("#search-limit");
     const live_rule_selector = modal.querySelectorAll("input[name='live-rule-selector']");
+    const duration_minim_limit_input = modal.querySelector("#minimum-duration-minutes");
 
     channel_name_input.value = channel.Name;
     channel_link_input.value = channel.Link;
@@ -46,6 +47,7 @@ function open_edit_modal(channel_id) {
     title_filter_text_input.value = channel.Filter_Title_Text;
     negate_filter_checkbox.checked = channel.Negate_Filter;
     search_limit_input.value = channel.Search_Limit;
+    duration_minim_limit_input.value = channel.Minimum_Duration_Minutes;
 
     change_filter_description(negate_filter_checkbox, filter_text_description);
 
@@ -135,7 +137,8 @@ function save_channel_changes(channel) {
         Negate_Filter: document.getElementById("negate-filter").checked,
         Media_Type: document.querySelector("input[name='media-type-selector']:checked").value,
         Search_Limit: document.getElementById("search-limit").value,
-        Live_Rule: document.querySelector("input[name='live-rule-selector']:checked").value
+        Live_Rule: document.querySelector("input[name='live-rule-selector']:checked").value,
+        Minimum_Duration_Minutes: parseInt(document.getElementById("minimum-duration-minutes").value, 10)
     };
 
     socket.emit("save_channel_changes", channel_updates);

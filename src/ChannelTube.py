@@ -126,6 +126,7 @@ class DataHandler:
                     "Media_Type": channel.get("Media_Type", "Video"),
                     "Search_Limit": channel.get("Search_Limit", ""),
                     "Live_Rule": channel.get("Live_Rule", "Ignore"),
+                    "Minimum_Duration_Minutes": channel.get("Minimum_Duration_Minutes"),
                 }
 
                 self.req_channel_list.append(full_channel_data)
@@ -167,6 +168,7 @@ class DataHandler:
         days_to_retrieve = channel["DL_Days"]
         channel_link = channel["Link"]
         search_limit = channel["Search_Limit"]
+        minimum_duration_minutes = channel["Minimum_Duration_Minutes"]*60
         video_to_download_list = []
 
         ydl_opts = {
@@ -236,7 +238,7 @@ class DataHandler:
                     self.general_logger.warning(f"Ignoring live video: {video_title} - {video_link}")
                     continue
 
-                if duration <= 180 and live_status is None:
+                if duration <= minimum_duration_minutes and live_status is None:
                     self.general_logger.warning(f"Ignoring short video: {video_title} - {video_link}")
                     continue
 
@@ -604,6 +606,7 @@ class DataHandler:
             "Media_Type": "Video",
             "Search_Limit": "",
             "Live_Rule": "Ignore",
+            "Minimum_Duration_Minutes": 3,
         }
         self.req_channel_list.append(new_channel)
         socketio.emit("new_channel_added", new_channel)
