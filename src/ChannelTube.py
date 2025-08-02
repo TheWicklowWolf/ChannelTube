@@ -439,6 +439,9 @@ class DataHandler:
                     "live_from_start": True,
                     "extractor_args": {"youtubetab": {"skip": ["authcheck"]}},
                     "verbose": self.verbose_logs,
+                    "writeinfojson": True,
+                    "addmetadata": True,
+                    "addchapters": True,
                 }
 
                 if self.subtitles in ["embed", "external"]:
