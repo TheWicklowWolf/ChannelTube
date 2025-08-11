@@ -3,6 +3,6 @@ gevent
 gevent-websocket
 flask
 flask_socketio
-yt_dlp[default]==2025.7.21
+yt_dlp[default]==2025.8.11
 plexapi
 requests
