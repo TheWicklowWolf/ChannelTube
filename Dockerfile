@@ -5,7 +5,7 @@ ARG RELEASE_VERSION
 ENV RELEASE_VERSION=${RELEASE_VERSION}
 
 # Install ffmpeg and su-exec
-RUN apk update && apk add --no-cache ffmpeg su-exec
+RUN apk update && apk add --no-cache ffmpeg su-exec deno
 
 # Create directories and set permissions
 COPY . /channeltube
@@ -22,3 +22,4 @@ EXPOSE 5000
 
 # Start the app
 ENTRYPOINT ["./thewicklowwolf-init.sh"]
+
