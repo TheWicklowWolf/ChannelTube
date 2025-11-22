@@ -461,7 +461,7 @@ class DataHandler:
                 if self.cookies_path:
                     ydl_opts["cookiefile"] = self.cookies_path
                 if self.include_info_json:
-                    ydl_opts["write_info_json"] = True
+                    ydl_opts["writeinfojson"] = True
 
                 yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
                 self.general_logger.warning(f"yt_dlp -> Starting to download: {link}")
@@ -777,4 +777,5 @@ def manual_start():
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
+
 
