@@ -48,6 +48,7 @@ class DataHandler:
         self.subtitles = "none" if self.subtitles not in ("none", "embed", "external") else self.subtitles
         self.subtitle_languages = os.environ.get("subtitle_languages", "en").split(",")
         self.include_id_in_filename = os.environ.get("include_id_in_filename", "false").lower() == "true"
+        self.include_info_json = os.environ.get("include_info_json", "false").lower() == "true"
         self.verbose_logs = os.environ.get("verbose_logs", "false").lower() == "true"
 
         os.makedirs(self.config_folder, exist_ok=True)
@@ -459,6 +460,8 @@ class DataHandler:
                     ydl_opts["merge_output_format"] = merge_output_format
                 if self.cookies_path:
                     ydl_opts["cookiefile"] = self.cookies_path
+                if self.include_info_json:
+                    ydl_opts["write_info_json"] = True
 
                 yt_downloader = yt_dlp.YoutubeDL(ydl_opts)
                 self.general_logger.warning(f"yt_dlp -> Starting to download: {link}")
@@ -774,3 +777,4 @@ def manual_start():
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
+
