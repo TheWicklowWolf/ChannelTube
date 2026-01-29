@@ -177,6 +177,8 @@ class DataHandler:
         }
         if search_limit:
             ydl_opts["playlist_items"] = f"1-{search_limit}"
+        if self.cookies_path:
+                ydl_opts["cookiefile"] = self.cookies_path
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
         if "playlist?list" in channel_link.lower():
