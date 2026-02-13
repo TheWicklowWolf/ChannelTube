@@ -307,7 +307,8 @@ class DataHandler:
 
         finally:
             self.general_logger.warning(f'Found {len(folder_info["filename_list"])} files and {len(folder_info["id_list"])} IDs in {channel_folder_path}.')
-            return folder_info
+        
+        return folder_info
 
     def count_media_files(self, channel_folder_path):
         video_item_count = 0
@@ -776,3 +777,4 @@ def manual_start():
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
+
