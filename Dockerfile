@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 # Set build arguments
 ARG RELEASE_VERSION
@@ -22,4 +22,5 @@ EXPOSE 5000
 
 # Start the app
 ENTRYPOINT ["./thewicklowwolf-init.sh"]
+
 
