@@ -1,8 +1,9 @@
-gunicorn
-gevent
-gevent-websocket
-flask
-flask_socketio
+gunicorn==25.1.0
+gevent==24.11.1
+gevent-websocket==0.10.1
+flask==3.1.2
+flask_socketio==5.6.0
 yt_dlp[default]==2026.2.4
-plexapi
-requests
+plexapi==4.18.0
+requests==2.32.5
+
