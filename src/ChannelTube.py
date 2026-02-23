@@ -49,6 +49,7 @@ class DataHandler:
         self.subtitle_languages = os.environ.get("subtitle_languages", "en").split(",")
         self.include_id_in_filename = os.environ.get("include_id_in_filename", "false").lower() == "true"
         self.verbose_logs = os.environ.get("verbose_logs", "false").lower() == "true"
+        self.short_video_cutoff = int(os.environ.get("short_video_cutoff", "180"))
 
         os.makedirs(self.config_folder, exist_ok=True)
         os.makedirs(self.download_folder, exist_ok=True)
@@ -238,9 +239,10 @@ class DataHandler:
                     self.general_logger.warning(f"Ignoring live video: {video_title} - {video_link}")
                     continue
 
-                if duration <= 180 and live_status is None:
-                    self.general_logger.warning(f"Ignoring short video: {video_title} - {video_link}")
+                if duration <= self.short_video_cutoff and live_status is None:
+                    self.general_logger.warning(f"Ignoring short video (<= {self.short_video_cutoff}s): {video_title} - {video_link}")
                     continue
+
 
                 if youtube_video_id in current_channel_files["id_list"] or video_title in current_channel_files["filename_list"]:
                     self.general_logger.warning(f"File for video: {video_title} already in folder.")
@@ -777,4 +779,5 @@ def manual_start():
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
+
 
