@@ -41,7 +41,7 @@ Certain values can be set via environment variables:
 * __subtitle_languages__: Comma-separated list of subtitle languages to include. Defaults to `en`.
 * __include_id_in_filename__: Include Video ID in filename. Set to `true` or `false`. Defaults to `false`.
 * __verbose_logs__: Enable verbose logging. Set to `true` or `false`. Defaults to `false`.
-* __short_video_cutoff__: Time-based cutoff (in seconds) used to filter short videos. Video Length below this value will be ignored. Defaults to 180.
+* __short_video_cutoff__: Time-based cutoff (in seconds) used to filter short videos. Videos with runtime shorter than this value will be ignored. Defaults to 180.
 
 
 > For information on format IDs, refer to [https://github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp)
@@ -90,4 +90,5 @@ To utilize a cookies file with yt-dlp, follow these steps:
 
 
 https://hub.docker.com/r/thewicklowwolf/channeltube
+
 
