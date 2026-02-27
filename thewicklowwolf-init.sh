@@ -72,7 +72,7 @@ if [ "$auto_update_hour" -ge 0 ] 2>/dev/null && [ "$auto_update_hour" -le 23 ]; 
                 echo "Running nightly yt-dlp update..."
                 echo "Current version:"
                 yt-dlp --version
-                pip install --no-cache-dir -U yt-dlp-nightly
+                pip install --no-cache-dir -U --pre "yt-dlp[default]"
                 echo "Updated version:"
                 yt-dlp --version
                 echo "----------------------------------------"
