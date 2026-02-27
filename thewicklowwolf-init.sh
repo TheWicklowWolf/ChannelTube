@@ -56,6 +56,35 @@ chown -R ${PUID}:${PGID} /channeltube
 # Set XDG_CACHE_HOME to use the cache directory
 export XDG_CACHE_HOME=/channeltube/cache
 
+# Nightly yt-dlp auto update
+auto_update_hour=${auto_update_hour:--1}
+if [ "$auto_update_hour" -ge 0 ] 2>/dev/null && [ "$auto_update_hour" -le 23 ]; then
+    echo "Nightly auto-update enabled at hour: $auto_update_hour"
+    (
+        LAST_RUN_DAY=""
+        while true; do
+            CURRENT_HOUR=$(date +%H)
+            CURRENT_DAY=$(date +%Y-%m-%d)
+            CURRENT_HOUR=${CURRENT_HOUR#0}
+            CURRENT_HOUR=${CURRENT_HOUR:-0}
+            if [ "$CURRENT_HOUR" -eq "$auto_update_hour" ] && [ "$CURRENT_DAY" != "$LAST_RUN_DAY" ]; then
+                echo "----------------------------------------"
+                echo "Running nightly yt-dlp update..."
+                echo "Current version:"
+                yt-dlp --version
+                pip install --no-cache-dir -U yt-dlp-nightly
+                echo "Updated version:"
+                yt-dlp --version
+                echo "----------------------------------------"
+                LAST_RUN_DAY="$CURRENT_DAY"
+            fi
+            sleep 600
+        done
+    ) &
+else
+    echo "Nightly auto-update disabled."
+fi
+
 # Start the application with the specified user permissions
 echo "Running ChannelTube..."
 exec su-exec ${PUID}:${PGID} gunicorn src.ChannelTube:app -c gunicorn_config.py
