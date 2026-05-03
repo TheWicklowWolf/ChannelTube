@@ -39,6 +39,7 @@ echo -n "FFmpeg: "
 ffmpeg -version | head -n 1 | awk '{print $3}'
 echo "-----------------"
 
+# Get Environmental Variables
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
