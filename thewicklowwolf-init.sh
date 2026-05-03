@@ -42,12 +42,14 @@ echo "-----------------"
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
-YTDLP_UPDATE_TYPE=${YTDLP_UPDATE_TYPE:-stable}
+ytdlp_update_type=${ytdlp_update_type:-stable}
+auto_update_hour=${auto_update_hour:--1}
+
 echo "-----------------"
 echo -e "\033[1mRunning with:\033[0m"
 echo "PUID=${PUID}"
 echo "PGID=${PGID}"
-echo "YTDLP_UPDATE_TYPE=${YTDLP_UPDATE_TYPE}"
+echo "YTDLP_UPDATE_TYPE=${ytdlp_update_type}"
 echo "-----------------"
 
 # Create the required directories with the correct permissions
@@ -59,22 +61,21 @@ chown -R ${PUID}:${PGID} /channeltube
 export XDG_CACHE_HOME=/channeltube/cache
 
 # Nightly yt-dlp auto update
-auto_update_hour=${auto_update_hour:--1}
 if [ "$auto_update_hour" -ge 0 ] 2>/dev/null && [ "$auto_update_hour" -le 23 ]; then
     echo "Nightly auto-update enabled at hour: $auto_update_hour"
     (
-        LAST_RUN_DAY=""
+        last_run_day=""
         while true; do
-            CURRENT_HOUR=$(date +%H)
-            CURRENT_DAY=$(date +%Y-%m-%d)
-            CURRENT_HOUR=${CURRENT_HOUR#0}
-            CURRENT_HOUR=${CURRENT_HOUR:-0}
-            if [ "$CURRENT_HOUR" -eq "$auto_update_hour" ] && [ "$CURRENT_DAY" != "$LAST_RUN_DAY" ]; then
+            current_hour=$(date +%H)
+            current_day=$(date +%Y-%m-%d)
+            current_hour=${current_hour#0}
+            current_hour=${current_hour:-0}
+            if [ "$current_hour" -eq "$auto_update_hour" ] && [ "$current_day" != "$last_run_day" ]; then
                 echo "----------------------------------------"
                 echo "Running nightly yt-dlp update..."
                 echo "Current version:"
                 yt-dlp --version
-                if [ "$YTDLP_UPDATE_TYPE" = "nightly" ]; then
+                if [ "$ytdlp_update_type" = "nightly" ]; then
                     pip install --no-cache-dir -U --pre "yt-dlp[default]"
                 else
                     pip install --no-cache-dir -U "yt-dlp[default]"
@@ -82,7 +83,7 @@ if [ "$auto_update_hour" -ge 0 ] 2>/dev/null && [ "$auto_update_hour" -le 23 ]; 
                 echo "Updated version:"
                 yt-dlp --version
                 echo "----------------------------------------"
-                LAST_RUN_DAY="$CURRENT_DAY"
+                last_run_day="$current_day"
             fi
             sleep 600
         done
