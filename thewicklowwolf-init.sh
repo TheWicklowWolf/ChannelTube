@@ -42,10 +42,12 @@ echo "-----------------"
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
+YTDLP_UPDATE_TYPE=${YTDLP_UPDATE_TYPE:-stable}
 echo "-----------------"
 echo -e "\033[1mRunning with:\033[0m"
 echo "PUID=${PUID}"
 echo "PGID=${PGID}"
+echo "YTDLP_UPDATE_TYPE=${YTDLP_UPDATE_TYPE}"
 echo "-----------------"
 
 # Create the required directories with the correct permissions
@@ -72,7 +74,11 @@ if [ "$auto_update_hour" -ge 0 ] 2>/dev/null && [ "$auto_update_hour" -le 23 ]; 
                 echo "Running nightly yt-dlp update..."
                 echo "Current version:"
                 yt-dlp --version
-                pip install --no-cache-dir -U --pre "yt-dlp[default]"
+                if [ "$YTDLP_UPDATE_TYPE" = "nightly" ]; then
+                    pip install --no-cache-dir -U --pre "yt-dlp[default]"
+                else
+                    pip install --no-cache-dir -U "yt-dlp[default]"
+                fi
                 echo "Updated version:"
                 yt-dlp --version
                 echo "----------------------------------------"
