@@ -49,7 +49,8 @@ echo "-----------------"
 echo -e "\033[1mRunning with:\033[0m"
 echo "PUID=${PUID}"
 echo "PGID=${PGID}"
-echo "YTDLP_UPDATE_TYPE=${ytdlp_update_type}"
+echo "ytdlp_update_type=${ytdlp_update_type}"
+echo "auto_update_hour=${auto_update_hour}"
 echo "-----------------"
 
 # Create the required directories with the correct permissions
