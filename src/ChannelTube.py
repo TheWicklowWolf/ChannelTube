@@ -1,18 +1,19 @@
-import logging
-import re
-import os
-import json
-import time
-import datetime
-import threading
-from mutagen.mp4 import MP4
 import concurrent.futures
+import datetime
+import json
+import logging
+import os
+import re
+import tempfile
+import threading
+import time
+
+import requests
+import yt_dlp
 from flask import Flask, render_template
 from flask_socketio import SocketIO
-import yt_dlp
+from mutagen.mp4 import MP4
 from plexapi.server import PlexServer
-import requests
-import tempfile
 
 PERMANENT_RETENTION = -1
 VIDEO_EXTENSIONS = {".mp4"}
@@ -179,7 +180,7 @@ class DataHandler:
         if search_limit:
             ydl_opts["playlist_items"] = f"1-{search_limit}"
         if self.cookies_path:
-                ydl_opts["cookiefile"] = self.cookies_path
+            ydl_opts["cookiefile"] = self.cookies_path
         ydl = yt_dlp.YoutubeDL(ydl_opts)
 
         if "playlist?list" in channel_link.lower():
@@ -221,11 +222,28 @@ class DataHandler:
                 youtube_video_id = video["id"]
                 live_status = video.get("live_status")
 
-                if channel["Live_Rule"] == "Only" and "live_status" not in video:
-                    self.general_logger.warning(f"live_status missing for {video_title}, fetching full metadata...")
-                    full_video_info = ydl.extract_info(video_link, download=False)
-                    live_status = full_video_info.get("live_status")
-                    
+                if channel["Live_Rule"] == "Only" and not live_status:
+                    try:
+                        self.general_logger.warning(f"live_status missing for {video_title}, fetching full metadata...")
+                        full_ydl_opts = {
+                            "quiet": True,
+                            "ffmpeg_location": "/usr/bin/ffmpeg",
+                            "verbose": self.verbose_logs,
+                        }
+
+                        if self.cookies_path:
+                            full_ydl_opts["cookiefile"] = self.cookies_path
+
+                        with yt_dlp.YoutubeDL(full_ydl_opts) as full_ydl:
+                            full_video_info = full_ydl.extract_info(video_link, download=False)
+
+                        live_status = full_video_info.get("live_status")
+
+                    except Exception as e:
+                        self.general_logger.warning(f"Unable to get live status for {video_title}: {e}")
+                        self.general_logger.warning(".... Onto the next Video")
+                        continue
+
                 if channel["Live_Rule"] == "Only":
                     if len(video_to_download_list):
                         self.general_logger.warning(f"Live video found for channel: {channel_title}")
@@ -237,8 +255,8 @@ class DataHandler:
                         continue
 
                     if not (live_status == "is_live" or live_status == "post_live"):
-                        self.general_logger.warning(f"No active live videos for channel: {channel_title}")
-                        break
+                        self.general_logger.warning(f"Skipping non-live video: {video_title}")
+                        continue
 
                 if channel["Live_Rule"] == "Ignore" and live_status is not None:
                     self.general_logger.warning(f"Ignoring live video: {video_title} - {video_link}")
@@ -247,7 +265,6 @@ class DataHandler:
                 if duration <= self.short_video_cutoff and live_status is None:
                     self.general_logger.warning(f"Ignoring short video (<= {self.short_video_cutoff}s): {video_title} - {video_link}")
                     continue
-
 
                 if youtube_video_id in current_channel_files["id_list"] or video_title in current_channel_files["filename_list"]:
                     self.general_logger.warning(f"File for video: {video_title} already in folder.")
@@ -314,7 +331,7 @@ class DataHandler:
 
         finally:
             self.general_logger.warning(f'Found {len(folder_info["filename_list"])} files and {len(folder_info["id_list"])} IDs in {channel_folder_path}.')
-        
+
         return folder_info
 
     def count_media_files(self, channel_folder_path):
@@ -784,5 +801,3 @@ def manual_start():
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
-
-
