@@ -219,8 +219,13 @@ class DataHandler:
                 video_link = video["url"]
                 duration = 0 if not video["duration"] else video["duration"]
                 youtube_video_id = video["id"]
-                live_status = video["live_status"]
+                live_status = video.get("live_status")
 
+                if channel["Live_Rule"] == "Only" and "live_status" not in video:
+                    self.general_logger.warning(f"live_status missing for {video_title}, fetching full metadata...")
+                    full_video_info = ydl.extract_info(video_link, download=False)
+                    live_status = full_video_info.get("live_status")
+                    
                 if channel["Live_Rule"] == "Only":
                     if len(video_to_download_list):
                         self.general_logger.warning(f"Live video found for channel: {channel_title}")
